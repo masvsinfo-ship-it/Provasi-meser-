@@ -16,42 +16,37 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
   ];
 
   return (
-    <div className="flex flex-col min-h-screen max-w-md mx-auto bg-slate-50 shadow-2xl relative overflow-hidden ring-1 ring-slate-200">
-      {/* Dynamic Modern Header */}
-      <header className="bg-gradient-to-r from-indigo-800 to-violet-800 p-7 rounded-b-[2.5rem] shadow-2xl sticky top-0 z-30 border-b border-white/10">
-        <h1 className="text-white text-2xl font-black flex items-center gap-3 tracking-tight">
-          <div className="bg-white/15 p-2.5 rounded-2xl backdrop-blur-md shadow-inner">
-            <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <span className="drop-shadow-md">ব্যাচেলরদের মেছের হিসাব</span>
+    <div className="flex flex-col min-h-screen max-w-md mx-auto bg-slate-50 shadow-2xl relative overflow-hidden">
+      {/* Header */}
+      <header className="bg-indigo-700 p-6 rounded-b-3xl shadow-lg sticky top-0 z-20">
+        <h1 className="text-white text-2xl font-bold flex items-center gap-2">
+          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          প্রভাসিদের মেছের হিসাব
         </h1>
+        <p className="text-indigo-100 text-sm mt-1 font-medium">বিল্লাল জামালপুর</p>
       </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 p-5 pb-32 overflow-y-auto">
+      {/* Main Content */}
+      <main className="flex-1 p-4 pb-24 overflow-y-auto">
         {children}
       </main>
 
-      {/* Bottom Floating Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/90 backdrop-blur-2xl border-t border-slate-200/50 px-6 py-5 z-40 flex justify-between items-center rounded-t-[2rem] shadow-[0_-10px_30px_rgba(0,0,0,0.08)]">
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-slate-200 px-6 py-3 z-30 flex justify-between items-center rounded-t-2xl shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${
-              activeTab === tab.id ? 'text-indigo-600 scale-110' : 'text-slate-400'
+            className={`flex flex-col items-center gap-1 transition-all ${
+              activeTab === tab.id ? 'text-indigo-600 transform scale-110' : 'text-slate-400'
             }`}
           >
-            <div className={`p-2 rounded-2xl transition-all duration-500 ${activeTab === tab.id ? 'bg-indigo-50 shadow-sm' : 'bg-transparent'}`}>
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d={tab.icon} />
-              </svg>
-            </div>
-            <span className={`text-[9px] font-black uppercase tracking-widest ${activeTab === tab.id ? 'opacity-100' : 'opacity-50'}`}>
-              {tab.label}
-            </span>
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={tab.icon} />
+            </svg>
+            <span className="text-[11px] font-bold">{tab.label}</span>
           </button>
         ))}
       </nav>
