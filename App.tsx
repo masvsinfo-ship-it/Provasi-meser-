@@ -7,6 +7,7 @@ import { geminiService } from './services/geminiService.ts';
 
 const APP_PREFIX = 'mess_tracker_v3_';
 const USERS_KEY = 'mess_tracker_auth_users';
+const DEBT_LIMIT = 300; // Threshold for warning
 
 const INITIAL_MEMBERS: Member[] = [
   { id: '1', name: 'বিল্লাল', avatar: 'https://picsum.photos/seed/billal/100', joinDate: Date.now() - 86400000 },
@@ -21,7 +22,7 @@ const App: React.FC = () => {
   const [tempPassword, setTempPassword] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
-  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
+  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'warning' } | null>(null);
 
   const [members, setMembers] = useState<Member[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -35,7 +36,7 @@ const App: React.FC = () => {
     }
   }, [userPhone]);
 
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+  const showToast = (message: string, type: 'success' | 'error' | 'warning' = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
@@ -98,6 +99,15 @@ const App: React.FC = () => {
   }, [members, expenses, userPhone]);
 
   const summary = useMemo(() => calculateMessSummary(members, expenses), [members, expenses]);
+
+  // Alert system for high debt
+  useEffect(() => {
+    const highDebtMembers = summary.memberBalances.filter(mb => Math.abs(mb.netBalance) > DEBT_LIMIT && !mb.member.leaveDate);
+    if (highDebtMembers.length > 0) {
+      const names = highDebtMembers.map(m => m.member.name).join(', ');
+      showToast(`${names}-এর বাকি ৩০০ ছাড়িয়েছে!`, "warning");
+    }
+  }, [summary.grandTotalDebt]);
 
   const [aiInsight, setAiInsight] = useState<string>('হিসাব বিশ্লেষণ করছি...');
   useEffect(() => {
@@ -185,7 +195,7 @@ const App: React.FC = () => {
         </div>
         <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm">
           <div className={`w-2 h-2 rounded-full ${saveStatus === 'saved' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></div>
-          <span className="text-[10px] font-black text-slate-500">স্বয়ংক্রিয় সেভ</span>
+          <span className="text-[10px] font-black text-slate-500">Auto Saved</span>
         </div>
       </div>
 
@@ -214,40 +224,54 @@ const App: React.FC = () => {
       </div>
 
       <div className="space-y-3">
-        <h2 className="text-slate-900 font-black text-lg px-2">মেম্বার প্রতি দেনার হিসাব</h2>
-        {summary.memberBalances.map((mb) => (
-          <div key={mb.member.id} className={`bg-white rounded-2xl p-4 flex flex-col gap-3 shadow-sm border border-slate-100 transition-all hover:border-indigo-200 ${mb.member.leaveDate ? 'opacity-50 grayscale' : ''}`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <img src={mb.member.avatar} className="w-12 h-12 rounded-full border-2 border-indigo-100 shadow-sm" alt="" />
-                  {mb.member.leaveDate && <div className="absolute inset-0 bg-slate-900/20 rounded-full"></div>}
+        <h2 className="text-slate-900 font-black text-lg px-2 flex justify-between items-center">
+          মেম্বার প্রতি দেনার হিসাব
+          <span className="text-[10px] font-black text-rose-500">Limit: {formatCurrency(DEBT_LIMIT)}</span>
+        </h2>
+        {summary.memberBalances.map((mb) => {
+          const isOverLimit = Math.abs(mb.netBalance) > DEBT_LIMIT && !mb.member.leaveDate;
+          return (
+            <div key={mb.member.id} className={`bg-white rounded-2xl p-4 flex flex-col gap-3 shadow-sm border-2 transition-all ${isOverLimit ? 'border-rose-200 bg-rose-50/10' : 'border-slate-100'} ${mb.member.leaveDate ? 'opacity-50 grayscale' : ''}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <img src={mb.member.avatar} className={`w-12 h-12 rounded-full border-2 shadow-sm ${isOverLimit ? 'border-rose-400' : 'border-indigo-100'}`} alt="" />
+                    {isOverLimit && (
+                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-full flex items-center justify-center border-2 border-white animate-bounce shadow-lg">
+                        <span className="text-white text-[10px] font-black">!</span>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-800 flex items-center gap-2">
+                      {mb.member.name}
+                      {mb.member.leaveDate && <span className="text-[8px] bg-slate-200 px-2 py-0.5 rounded font-black">EX-MEMBER</span>}
+                      {isOverLimit && <span className="text-[8px] bg-rose-500 text-white px-2 py-0.5 rounded font-black uppercase tracking-tighter animate-pulse">OVER LIMIT</span>}
+                    </p>
+                    <p className="text-[10px] text-slate-400 font-black uppercase">দোকানদার পাবে</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-bold text-slate-800 flex items-center gap-2">
-                    {mb.member.name}
-                    {mb.member.leaveDate && <span className="text-[8px] bg-slate-200 px-2 py-0.5 rounded font-black">EX-MEMBER</span>}
+                <div className="text-right">
+                  <p className={`text-xl font-black ${isOverLimit ? 'text-rose-700' : 'text-rose-600'}`}>
+                    {formatCurrency(Math.abs(mb.netBalance))}
                   </p>
-                  <p className="text-[10px] text-slate-400 font-black uppercase">দোকানদার পাবে</p>
+                  {isOverLimit && <p className="text-[7px] text-rose-500 font-black uppercase mt-0.5">টাকা পরিশোধ করুন!</p>}
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-xl font-black text-rose-600">{formatCurrency(Math.abs(mb.netBalance))}</p>
+              
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-50">
+                <div className="bg-slate-50/50 p-2 rounded-xl">
+                  <p className="text-[8px] font-black text-slate-400 uppercase mb-0.5">মেস বাজার শেয়ার</p>
+                  <p className="text-[11px] font-black text-slate-700">{formatCurrency(mb.sharedShare)}</p>
+                </div>
+                <div className={`p-2 rounded-xl border ${mb.personalTotal > (DEBT_LIMIT/2) ? 'bg-rose-50 border-rose-100' : 'bg-slate-50/50 border-slate-100'}`}>
+                  <p className={`text-[8px] font-black uppercase mb-0.5 ${mb.personalTotal > (DEBT_LIMIT/2) ? 'text-rose-400' : 'text-slate-400'}`}>ব্যক্তিগত বাকি</p>
+                  <p className="text-[11px] font-black text-slate-700">{formatCurrency(mb.personalTotal)}</p>
+                </div>
               </div>
             </div>
-            
-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-50">
-              <div className="bg-slate-50/50 p-2 rounded-xl">
-                <p className="text-[8px] font-black text-slate-400 uppercase mb-0.5">মেস বাজার শেয়ার</p>
-                <p className="text-[11px] font-black text-slate-700">{formatCurrency(mb.sharedShare)}</p>
-              </div>
-              <div className="bg-rose-50/50 p-2 rounded-xl border border-rose-100/50">
-                <p className="text-[8px] font-black text-rose-400 uppercase mb-0.5">ব্যক্তিগত বাকি</p>
-                <p className="text-[11px] font-black text-rose-700">{formatCurrency(mb.personalTotal)}</p>
-              </div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -460,7 +484,7 @@ const App: React.FC = () => {
         </div>
 
         {toast && (
-          <div className={`fixed bottom-10 left-6 right-6 z-50 p-4 rounded-2xl text-center font-bold text-sm animate-in slide-in-from-bottom-4 shadow-2xl ${toast.type === 'error' ? 'bg-rose-500' : 'bg-emerald-500'}`}>
+          <div className={`fixed bottom-10 left-6 right-6 z-50 p-4 rounded-2xl text-center font-bold text-sm animate-in slide-in-from-bottom-4 shadow-2xl ${toast.type === 'error' ? 'bg-rose-500' : toast.type === 'warning' ? 'bg-amber-500' : 'bg-emerald-500'}`}>
             {toast.message}
           </div>
         )}
@@ -478,8 +502,8 @@ const App: React.FC = () => {
       </div>
 
       {toast && (
-        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 ${toast.type === 'success' ? 'bg-indigo-600 text-white' : 'bg-rose-600 text-white'}`}>
-          <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
+        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 ${toast.type === 'success' ? 'bg-indigo-600 text-white' : toast.type === 'warning' ? 'bg-amber-500 text-white' : 'bg-rose-600 text-white'}`}>
+          <div className={`w-2 h-2 rounded-full bg-white ${toast.type === 'warning' ? 'animate-bounce' : 'animate-pulse'}`}></div>
           <p className="text-xs font-black uppercase tracking-widest">{toast.message}</p>
         </div>
       )}
