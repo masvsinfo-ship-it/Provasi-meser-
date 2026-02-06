@@ -176,53 +176,6 @@ const App: React.FC = () => {
     setActiveTab('dashboard');
   };
 
-  if (!userPhone) {
-    return (
-      <div className="min-h-screen bg-indigo-800 flex flex-col justify-center p-6 text-white max-w-md mx-auto relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -translate-y-40 translate-x-40 blur-3xl"></div>
-        <div className="relative z-10 text-center space-y-8 animate-in fade-in zoom-in duration-700">
-          <div className="w-24 h-24 bg-white rounded-3xl mx-auto flex items-center justify-center text-5xl shadow-2xl rotate-3">🏪</div>
-          <div className="space-y-2">
-            <h1 className="text-4xl font-black tracking-tight">{isLoginMode ? 'লগইন' : 'নতুন অ্যাকাউন্ট'}</h1>
-            <p className="text-indigo-200 font-medium">দোকানে বাকির ডিজিটাল হিসাব</p>
-          </div>
-          
-          <form onSubmit={handleAuth} className="space-y-4">
-            <input 
-              type="tel" 
-              placeholder="মোবাইল নাম্বার" 
-              className="w-full bg-white/10 border-2 border-white/20 rounded-2xl px-6 py-4 text-lg font-bold placeholder:text-white/30 focus:bg-white focus:text-indigo-900 outline-none transition-all text-center"
-              value={tempPhone}
-              onChange={(e) => setTempPhone(e.target.value)}
-            />
-            <input 
-              type="password" 
-              placeholder="পাসওয়ার্ড" 
-              className="w-full bg-white/10 border-2 border-white/20 rounded-2xl px-6 py-4 text-lg font-bold placeholder:text-white/30 focus:bg-white focus:text-indigo-900 outline-none transition-all text-center"
-              value={tempPassword}
-              onChange={(e) => setTempPassword(e.target.value)}
-            />
-            <button className="w-full bg-white text-indigo-800 font-black py-5 rounded-2xl text-xl shadow-xl active:scale-95 transition-all">
-              {isLoginMode ? 'প্রবেশ করুন' : 'নিবন্ধন করুন'}
-            </button>
-          </form>
-
-          <button onClick={() => setIsLoginMode(!isLoginMode)} className="text-indigo-200 font-bold underline underline-offset-4">
-            {isLoginMode ? 'নতুন মেছ? অ্যাকাউন্ট খুলুন' : 'আগে থেকেই আছে? লগইন করুন'}
-          </button>
-          
-          <p className="text-[10px] text-white/30 uppercase tracking-[0.3em] font-black pt-12">বিল্লাল জামালপুর</p>
-        </div>
-
-        {toast && (
-          <div className={`fixed bottom-10 left-6 right-6 z-50 p-4 rounded-2xl text-center font-bold text-sm animate-in slide-in-from-bottom-4 shadow-2xl ${toast.type === 'error' ? 'bg-rose-500' : 'bg-emerald-500'}`}>
-            {toast.message}
-          </div>
-        )}
-      </div>
-    );
-  }
-
   const renderDashboard = () => (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex justify-between items-end px-2">
@@ -232,34 +185,44 @@ const App: React.FC = () => {
         </div>
         <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm">
           <div className={`w-2 h-2 rounded-full ${saveStatus === 'saved' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></div>
-          <span className="text-[10px] font-black text-slate-500">Auto Saved</span>
+          <span className="text-[10px] font-black text-slate-500">স্বয়ংক্রিয় সেভ</span>
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-rose-50 p-5 rounded-2xl border border-rose-100">
-            <p className="text-rose-600 text-[10px] font-black uppercase tracking-wider mb-1">মোট দোকান বাকি</p>
-            <p className="text-rose-700 text-2xl font-black">{formatCurrency(summary.totalSharedExpense)}</p>
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-rose-50 rounded-full translate-x-16 -translate-y-16 opacity-50"></div>
+        <div className="relative z-10">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-rose-50/50 p-5 rounded-2xl border border-rose-100">
+              <p className="text-rose-600 text-[10px] font-black uppercase tracking-wider mb-1">মোট দোকান বাকি</p>
+              <p className="text-rose-700 text-2xl font-black">{formatCurrency(summary.grandTotalDebt)}</p>
+              <div className="mt-2 space-y-0.5">
+                <p className="text-[8px] font-bold text-slate-400 uppercase">বাজার: {formatCurrency(summary.totalSharedExpense)}</p>
+                <p className="text-[8px] font-bold text-slate-400 uppercase">ব্যক্তিগত: {formatCurrency(summary.totalPersonalExpense)}</p>
+              </div>
+            </div>
+            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
+              <p className="text-slate-400 text-[10px] font-black uppercase tracking-wider mb-1">সক্রিয় মেম্বার</p>
+              <p className="text-slate-900 text-2xl font-black">{activeMembers.length} জন</p>
+            </div>
           </div>
-          <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
-            <p className="text-slate-400 text-[10px] font-black uppercase tracking-wider mb-1">সক্রিয় মেম্বার</p>
-            <p className="text-slate-900 text-2xl font-black">{activeMembers.length} জন</p>
+          <div className="mt-4 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50 flex gap-3">
+            <span className="text-xl">💡</span>
+            <p className="text-[12px] text-slate-600 font-medium leading-relaxed">{aiInsight}</p>
           </div>
-        </div>
-        <div className="mt-4 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50 flex gap-3">
-          <span className="text-xl">💡</span>
-          <p className="text-[12px] text-slate-600 font-medium leading-relaxed">{aiInsight}</p>
         </div>
       </div>
 
       <div className="space-y-3">
         <h2 className="text-slate-900 font-black text-lg px-2">মেম্বার প্রতি দেনার হিসাব</h2>
         {summary.memberBalances.map((mb) => (
-          <div key={mb.member.id} className={`bg-white rounded-2xl p-4 flex flex-col gap-3 shadow-sm border border-slate-100 ${mb.member.leaveDate ? 'opacity-50 grayscale' : ''}`}>
+          <div key={mb.member.id} className={`bg-white rounded-2xl p-4 flex flex-col gap-3 shadow-sm border border-slate-100 transition-all hover:border-indigo-200 ${mb.member.leaveDate ? 'opacity-50 grayscale' : ''}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <img src={mb.member.avatar} className="w-12 h-12 rounded-full border-2 border-indigo-100" alt="" />
+                <div className="relative">
+                  <img src={mb.member.avatar} className="w-12 h-12 rounded-full border-2 border-indigo-100 shadow-sm" alt="" />
+                  {mb.member.leaveDate && <div className="absolute inset-0 bg-slate-900/20 rounded-full"></div>}
+                </div>
                 <div>
                   <p className="font-bold text-slate-800 flex items-center gap-2">
                     {mb.member.name}
@@ -275,11 +238,11 @@ const App: React.FC = () => {
             
             <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-50">
               <div className="bg-slate-50/50 p-2 rounded-xl">
-                <p className="text-[8px] font-black text-slate-400 uppercase mb-0.5">মেস বাজার (শেয়ার)</p>
+                <p className="text-[8px] font-black text-slate-400 uppercase mb-0.5">মেস বাজার শেয়ার</p>
                 <p className="text-[11px] font-black text-slate-700">{formatCurrency(mb.sharedShare)}</p>
               </div>
               <div className="bg-rose-50/50 p-2 rounded-xl border border-rose-100/50">
-                <p className="text-[8px] font-black text-rose-400 uppercase mb-0.5">ব্যক্তিগত খরচ (বাকি)</p>
+                <p className="text-[8px] font-black text-rose-400 uppercase mb-0.5">ব্যক্তিগত বাকি</p>
                 <p className="text-[11px] font-black text-rose-700">{formatCurrency(mb.personalTotal)}</p>
               </div>
             </div>
@@ -457,6 +420,53 @@ const App: React.FC = () => {
       <p className="text-center text-slate-300 text-[9px] font-black uppercase tracking-[0.4em] pt-10 pb-4">বিল্লাল জামালপুর</p>
     </div>
   );
+
+  if (!userPhone) {
+    return (
+      <div className="min-h-screen bg-indigo-800 flex flex-col justify-center p-6 text-white max-w-md mx-auto relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -translate-y-40 translate-x-40 blur-3xl"></div>
+        <div className="relative z-10 text-center space-y-8 animate-in fade-in zoom-in duration-700">
+          <div className="w-24 h-24 bg-white rounded-3xl mx-auto flex items-center justify-center text-5xl shadow-2xl rotate-3">🏪</div>
+          <div className="space-y-2">
+            <h1 className="text-4xl font-black tracking-tight">{isLoginMode ? 'লগইন' : 'নতুন অ্যাকাউন্ট'}</h1>
+            <p className="text-indigo-200 font-medium">দোকানে বাকির ডিজিটাল হিসাব</p>
+          </div>
+          
+          <form onSubmit={handleAuth} className="space-y-4">
+            <input 
+              type="tel" 
+              placeholder="মোবাইল নাম্বার" 
+              className="w-full bg-white/10 border-2 border-white/20 rounded-2xl px-6 py-4 text-lg font-bold placeholder:text-white/30 focus:bg-white focus:text-indigo-900 outline-none transition-all text-center"
+              value={tempPhone}
+              onChange={(e) => setTempPhone(e.target.value)}
+            />
+            <input 
+              type="password" 
+              placeholder="পাসওয়ার্ড" 
+              className="w-full bg-white/10 border-2 border-white/20 rounded-2xl px-6 py-4 text-lg font-bold placeholder:text-white/30 focus:bg-white focus:text-indigo-900 outline-none transition-all text-center"
+              value={tempPassword}
+              onChange={(e) => setTempPassword(e.target.value)}
+            />
+            <button className="w-full bg-white text-indigo-800 font-black py-5 rounded-2xl text-xl shadow-xl active:scale-95 transition-all">
+              {isLoginMode ? 'প্রবেশ করুন' : 'নিবন্ধন করুন'}
+            </button>
+          </form>
+
+          <button onClick={() => setIsLoginMode(!isLoginMode)} className="text-indigo-200 font-bold underline underline-offset-4">
+            {isLoginMode ? 'নতুন মেছ? অ্যাকাউন্ট খুলুন' : 'আগে থেকেই আছে? লগইন করুন'}
+          </button>
+          
+          <p className="text-[10px] text-white/30 uppercase tracking-[0.3em] font-black pt-12">বিল্লাল জামালপুর</p>
+        </div>
+
+        {toast && (
+          <div className={`fixed bottom-10 left-6 right-6 z-50 p-4 rounded-2xl text-center font-bold text-sm animate-in slide-in-from-bottom-4 shadow-2xl ${toast.type === 'error' ? 'bg-rose-500' : 'bg-emerald-500'}`}>
+            {toast.message}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <Layout activeTab={activeTab} setActiveTab={setActiveTab}>

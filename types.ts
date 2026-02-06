@@ -28,11 +28,13 @@ export interface MemberBalance {
   sharedShare: number;  // Their share of mess market (up to leave date)
   personalTotal: number; // Their personal specific expenses
   totalCost: number;    // sharedShare + personalTotal
-  netBalance: number;   // paid - totalCost (positive means they get money back)
+  netBalance: number;   // paid - totalCost (negative means they owe the shop)
 }
 
 export interface MessSummary {
   totalSharedExpense: number;
+  totalPersonalExpense: number;
+  grandTotalDebt: number;
   averagePerPerson: number;
   memberBalances: MemberBalance[];
 }

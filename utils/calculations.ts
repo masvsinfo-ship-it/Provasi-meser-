@@ -6,11 +6,17 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
     .filter(e => e.type === ExpenseType.SHARED)
     .reduce((sum, e) => sum + e.amount, 0);
 
+  const totalPersonal = expenses
+    .filter(e => e.type === ExpenseType.PERSONAL)
+    .reduce((sum, e) => sum + e.amount, 0);
+
+  const grandTotalDebt = totalShared + totalPersonal;
+
   const balancesMap = new Map<string, MemberBalance>();
   members.forEach(m => {
     balancesMap.set(m.id, {
       member: m,
-      paid: 0, // In this system, members don't pay upfront
+      paid: 0,
       sharedShare: 0,
       personalTotal: 0,
       totalCost: 0,
@@ -20,9 +26,7 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
 
   // Calculate costs
   expenses.forEach(exp => {
-    // 1. Cost Distribution logic
     if (exp.type === ExpenseType.SHARED) {
-      // Logic: Only members active at the EXACT time of market share the cost
       const activeAtTime = members.filter(m => 
         m.joinDate <= exp.date && 
         (!m.leaveDate || m.leaveDate >= exp.date) 
@@ -43,13 +47,13 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
     }
   });
 
-  // Finalize totals and balances (Since no one pays, netBalance = -totalCost)
+  // Finalize totals and balances
   const memberBalances = Array.from(balancesMap.values()).map(b => {
     const totalCost = b.sharedShare + b.personalTotal;
     return {
       ...b,
       totalCost,
-      netBalance: -totalCost // Negative indicates they owe the shop
+      netBalance: -totalCost // Everything is debt to shop
     };
   });
 
@@ -58,6 +62,8 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
 
   return {
     totalSharedExpense: totalShared,
+    totalPersonalExpense: totalPersonal,
+    grandTotalDebt,
     averagePerPerson: average,
     memberBalances: memberBalances
   };
