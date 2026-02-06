@@ -6,8 +6,6 @@ export class GeminiService {
   private ai: GoogleGenAI | null = null;
 
   constructor() {
-    // Vercel handles environment variables via the dashboard.
-    // Safe check for process to avoid ReferenceError in browser
     const apiKey = typeof process !== 'undefined' ? process.env.API_KEY : undefined;
     if (apiKey) {
       this.ai = new GoogleGenAI({ apiKey });
@@ -20,15 +18,15 @@ export class GeminiService {
     }
 
     const prompt = `
-      Analyze this Mess (Shared Apartment) financial status and give a VERY FRIENDLY, warm, and helpful advice in BENGALI.
-      The mess follows a "Total Bill" system (No advance pool).
-      Total Mess Market Expense: SR ${summary.totalSharedExpense.toFixed(2)}
-      Each member's shared share: SR ${summary.averagePerPerson.toFixed(2)}
+      Analyze this Mess (Shared Apartment) credit status and give a VERY FRIENDLY, warm, and helpful advice in BENGALI.
+      The mess follows a 100% "Credit at Shop" system. No member pays upfront.
+      Total Debt to Shop (Dokaner Baki): SR ${summary.totalSharedExpense.toFixed(2)}
       
-      Member Total Costs (Shared Share + Personal items):
-      ${summary.memberBalances.map(b => `- ${b.member.name}: Total SR ${b.netBalance.toFixed(2)} (Personal was SR ${b.personalTotal.toFixed(2)})`).join('\n')}
+      Member Debt Breakdown (What they owe for Shared + Personal items):
+      ${summary.memberBalances.map(b => `- ${b.member.name}: Total Debt SR ${Math.abs(b.netBalance).toFixed(2)} (Shared Share: SR ${b.sharedShare.toFixed(2)}, Personal: SR ${b.personalTotal.toFixed(2)})`).join('\n')}
       
-      Advice should be in Bengali. Use emojis. Sound like a helpful friend. Mention if someone is spending too much on personal things or if the mess budget is doing great.
+      Advice should be in Bengali. Use emojis. Sound like a helpful friend. 
+      Specifically mention if someone's "Personal Debt" is significantly high compared to others.
       Keep it 1-2 sentences. Use warm greetings like "আসসালামু আলাইকুম" or "কেমন আছেন সবাই?".
     `;
 
@@ -40,10 +38,10 @@ export class GeminiService {
           thinkingConfig: { thinkingBudget: 0 }
         }
       });
-      return response.text || "আপনার মেছের হিসাব একদম ঠিকঠাক আছে। সবাই মিলেমিশে থাকুন! 😊";
+      return response.text || "দোকানে বাকি হিসাব একদম ঠিকঠাক আছে। সবাই মিলেমিশে থাকুন! 😊";
     } catch (error) {
       console.error("Gemini Error:", error);
-      return "হিসাব তো ঠিক আছে, তবে আপনার AI বন্ধুটি বর্তমানে একটু বিশ্রামে আছে। পরে ট্রাই করুন। 👍";
+      return "হিসাব তো ঠিক আছে, তবে আপনার AI বন্ধুটি বর্তমানে একটু বিশ্রামে আছে। 👍";
     }
   }
 }

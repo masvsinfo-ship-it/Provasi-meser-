@@ -10,7 +10,7 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
   members.forEach(m => {
     balancesMap.set(m.id, {
       member: m,
-      paid: 0,
+      paid: 0, // In this system, members don't pay upfront
       sharedShare: 0,
       personalTotal: 0,
       totalCost: 0,
@@ -18,20 +18,14 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
     });
   });
 
-  // Calculate costs and payments
+  // Calculate costs
   expenses.forEach(exp => {
-    // 1. Payment tracking (Who paid from their pocket)
-    const payer = balancesMap.get(exp.payerId);
-    if (payer) {
-      payer.paid += exp.amount;
-    }
-
-    // 2. Cost Distribution
+    // 1. Cost Distribution logic
     if (exp.type === ExpenseType.SHARED) {
-      // Important: Only members active AT THE TIME of expense get a share
+      // Logic: Only members active at the EXACT time of market share the cost
       const activeAtTime = members.filter(m => 
         m.joinDate <= exp.date && 
-        (!m.leaveDate || m.leaveDate >= exp.date) // Included on their leave date too
+        (!m.leaveDate || m.leaveDate >= exp.date) 
       );
 
       if (activeAtTime.length > 0) {
@@ -49,13 +43,13 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
     }
   });
 
-  // Finalize totals and balances
+  // Finalize totals and balances (Since no one pays, netBalance = -totalCost)
   const memberBalances = Array.from(balancesMap.values()).map(b => {
     const totalCost = b.sharedShare + b.personalTotal;
     return {
       ...b,
       totalCost,
-      netBalance: b.paid - totalCost // Positive = Refund due, Negative = Must pay
+      netBalance: -totalCost // Negative indicates they owe the shop
     };
   });
 
