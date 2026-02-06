@@ -1,7 +1,5 @@
 {
-  "name": "ব্যাচেলরদের মেছের হিসাব",
-  "description": "Shared expense tracker for bachelors with local currency detection.",
-  "requestFramePermissions": [
-    "geolocation"
-  ]
+  "name": "প্রভাসিদের মেছের হিসাব",
+  "description": "বিল্লাল জামালপুর - shared expense tracker for প্রবাসী mess management.",
+  "requestFramePermissions": []
 }
