@@ -1,6 +1,42 @@
 
 import { Member, Expense, ExpenseType, MessSummary, MemberBalance } from '../types.ts';
 
+/**
+ * Detects the user's local currency based on their browser settings.
+ * Defaults to 'BDT' if detection fails.
+ */
+const getLocalCurrencyCode = (): string => {
+  try {
+    // Some browsers might provide a currency in resolvedOptions if initialized with a locale
+    const locale = navigator.language || 'bn-BD';
+    const formatter = new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD' });
+    const resolved = formatter.resolvedOptions();
+    
+    // We try to infer country from locale to map currency
+    const country = locale.split('-')[1]?.toUpperCase();
+    const countryToCurrency: Record<string, string> = {
+      'BD': 'BDT',
+      'SA': 'SAR',
+      'AE': 'AED',
+      'QA': 'QAR',
+      'KW': 'KWD',
+      'OM': 'OMR',
+      'BH': 'BHD',
+      'MY': 'MYR',
+      'SG': 'SGD',
+      'US': 'USD',
+      'GB': 'GBP',
+      'EU': 'EUR',
+      'IT': 'EUR',
+      'FR': 'EUR'
+    };
+    
+    return country ? (countryToCurrency[country] || 'SAR') : 'SAR';
+  } catch (e) {
+    return 'SAR'; // Fallback to Saudi Riyal as per initial app context
+  }
+};
+
 export const calculateMessSummary = (members: Member[], expenses: Expense[]): MessSummary => {
   const totalShared = expenses
     .filter(e => e.type === ExpenseType.SHARED)
@@ -28,7 +64,6 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
     });
   });
 
-  // Calculate costs and payments
   expenses.forEach(exp => {
     if (exp.type === ExpenseType.SHARED) {
       const activeAtTime = members.filter(m => 
@@ -56,7 +91,6 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
     }
   });
 
-  // Finalize totals and balances
   const memberBalances = Array.from(balancesMap.values()).map(b => {
     const totalCost = b.sharedShare + b.personalTotal;
     return {
@@ -81,11 +115,19 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
 
 export const formatCurrency = (amount: number) => {
   const absAmount = Math.abs(amount);
-  const formatted = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'SAR',
-    minimumFractionDigits: 2
-  }).format(absAmount).replace('SAR', 'SR');
+  const currencyCode = getLocalCurrencyCode();
   
-  return amount < 0 ? `-${formatted}` : formatted;
+  try {
+    const formatted = new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: currencyCode,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(absAmount);
+    
+    return amount < 0 ? `-${formatted}` : formatted;
+  } catch (e) {
+    // Extreme fallback if Intl fails
+    return `${amount < 0 ? '-' : ''}${currencyCode} ${absAmount.toFixed(2)}`;
+  }
 };
