@@ -347,9 +347,12 @@ const App: React.FC = () => {
       <div className="min-h-screen bg-indigo-900 flex flex-col justify-center p-6 text-white text-center relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -translate-y-40 translate-x-40 blur-3xl"></div>
         <div className="relative z-10 space-y-5 max-w-sm mx-auto w-full">
+          {/* Static Title above icon */}
+          <h2 className="text-xl font-black tracking-tight mb-2">ব্যাচেলর দের মেছের হিসাব</h2>
+          
           <div className="w-16 h-16 bg-white rounded-2xl mx-auto flex items-center justify-center text-3xl shadow-2xl rotate-3 mb-2">🏪</div>
           
-          <h1 className="text-2xl font-black tracking-tight">{isAdminTab ? 'এডমিন লগিন' : (isLoginMode ? 'ইউজার লগইন' : 'নতুন অ্যাকাউন্ট')}</h1>
+          <h1 className="text-lg font-bold tracking-tight opacity-90">{isAdminTab ? 'এডমিন লগিন' : (isLoginMode ? 'ইউজার লগইন' : 'নতুন অ্যাকাউন্ট')}</h1>
           
           <form onSubmit={handleAuth} className="space-y-3">
             {!isAdminTab && <input type="tel" placeholder="মোবাইল নাম্বার" className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" value={tempPhone} onChange={e => setTempPhone(e.target.value)} />}
