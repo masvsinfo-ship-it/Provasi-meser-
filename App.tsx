@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Member, Expense, ExpenseType, MessSummary } from './types';
-import { calculateMessSummary, formatCurrency } from './utils/calculations';
-import Layout from './components/Layout';
-import { geminiService } from './services/geminiService';
+import { Member, Expense, ExpenseType, MessSummary } from './types.ts';
+import { calculateMessSummary, formatCurrency } from './utils/calculations.ts';
+import Layout from './components/Layout.tsx';
+import { geminiService } from './services/geminiService.ts';
 
 const STORAGE_KEYS = {
   MEMBERS: 'mess_members_final_v1',
@@ -207,7 +207,7 @@ const App: React.FC = () => {
 
       <div className="space-y-3">
         <div className="flex justify-between items-center px-2">
-          <h2 className="text-slate-900 font-black text-lg">সদস্যদের বিল</h2>
+          <h2 className="text-slate-900 font-black text-lg">মেম্বারদের বিল</h2>
           <button onClick={() => setActiveTab('summary')} className="text-indigo-600 text-[10px] font-black bg-indigo-50 px-4 py-2 rounded-full hover:bg-indigo-100 transition-all active:scale-90 uppercase tracking-wider shadow-sm">ম্যানেজ</button>
         </div>
         
@@ -294,7 +294,7 @@ const App: React.FC = () => {
                 className={`py-4 px-2 rounded-2xl text-[11px] font-black border-2 transition-all active:scale-95 flex flex-col items-center gap-1 ${expenseType === ExpenseType.PERSONAL ? 'bg-rose-600 text-white border-rose-600 shadow-lg shadow-rose-200' : 'bg-white text-slate-400 border-slate-100 hover:border-rose-100'}`}
               >
                 <span>👤</span>
-                <span>একজনের ব্যক্তিগত</span>
+                <span>ব্যক্তিগত</span>
               </button>
             </div>
           </div>

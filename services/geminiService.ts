@@ -1,14 +1,14 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { MessSummary } from "../types";
+import { MessSummary } from "../types.ts";
 
 export class GeminiService {
   private ai: GoogleGenAI | null = null;
 
   constructor() {
     // Vercel handles environment variables via the dashboard.
-    // Use API_KEY in Vercel Project Settings -> Environment Variables.
-    const apiKey = process.env.API_KEY;
+    // Safe check for process to avoid ReferenceError in browser
+    const apiKey = typeof process !== 'undefined' ? process.env.API_KEY : undefined;
     if (apiKey) {
       this.ai = new GoogleGenAI({ apiKey });
     }
