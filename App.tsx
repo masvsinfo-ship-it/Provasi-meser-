@@ -179,18 +179,18 @@ const App: React.FC = () => {
         <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm transition-all">
           <div className={`w-2 h-2 rounded-full ${saveStatus === 'saved' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-amber-500 animate-pulse'}`}></div>
           <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-            {saveStatus === 'saved' ? 'ক্লাউড সিঙ্ক নেই, লোকাল সেভ' : 'সেভ হচ্ছে...'}
+            {saveStatus === 'saved' ? 'Vercel Deployment: Live' : 'সেভ হচ্ছে...'}
           </span>
         </div>
       </div>
 
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-indigo-50 p-5 rounded-2xl border border-indigo-100 group transition-all hover:scale-105">
+          <div className="bg-indigo-50 p-5 rounded-2xl border border-indigo-100 group transition-all hover:scale-105 active:scale-95 cursor-pointer">
             <p className="text-indigo-600 text-[10px] font-black uppercase tracking-wider mb-1">মোট খরচ</p>
             <p className="text-slate-900 text-2xl font-black">{formatCurrency(summary.totalSharedExpense)}</p>
           </div>
-          <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100 group transition-all hover:scale-105">
+          <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100 group transition-all hover:scale-105 active:scale-95 cursor-pointer">
             <p className="text-emerald-600 text-[10px] font-black uppercase tracking-wider mb-1">জনপ্রতি গড়</p>
             <p className="text-slate-900 text-2xl font-black">{formatCurrency(summary.averagePerPerson)}</p>
           </div>
@@ -207,8 +207,8 @@ const App: React.FC = () => {
 
       <div className="space-y-3">
         <div className="flex justify-between items-center px-2">
-          <h2 className="text-slate-900 font-black text-lg">মেম্বারদের বর্তমান বিল</h2>
-          <button onClick={() => setActiveTab('summary')} className="text-indigo-600 text-[10px] font-black bg-indigo-50 px-4 py-2 rounded-full hover:bg-indigo-100 transition-all active:scale-90 uppercase tracking-wider">ম্যানেজ</button>
+          <h2 className="text-slate-900 font-black text-lg">সদস্যদের বিল</h2>
+          <button onClick={() => setActiveTab('summary')} className="text-indigo-600 text-[10px] font-black bg-indigo-50 px-4 py-2 rounded-full hover:bg-indigo-100 transition-all active:scale-90 uppercase tracking-wider shadow-sm">ম্যানেজ</button>
         </div>
         
         {summary.memberBalances.map((mb) => (
@@ -227,7 +227,7 @@ const App: React.FC = () => {
               <p className="text-xl font-black text-slate-900">{formatCurrency(mb.netBalance)}</p>
               <div className="flex items-center justify-end gap-1">
                 <div className="w-1 h-1 bg-rose-400 rounded-full"></div>
-                <p className="text-[9px] text-rose-500 font-black uppercase">পার্সোনাল: {formatCurrency(mb.personalTotal)}</p>
+                <p className="text-[9px] text-rose-500 font-black uppercase">ব্যক্তিগত: {formatCurrency(mb.personalTotal)}</p>
               </div>
             </div>
           </div>
@@ -239,14 +239,14 @@ const App: React.FC = () => {
   const renderAddExpense = () => (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-        <h2 className="text-xl font-black text-slate-900 mb-6 text-center">নতুন হিসাব যোগ</h2>
+        <h2 className="text-xl font-black text-slate-900 mb-6 text-center">নতুন খরচ যোগ করুন</h2>
         
         <div className="space-y-5">
           <div>
-            <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest px-1">কিসের খরচ?</label>
+            <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest px-1">কি বাবদ খরচ?</label>
             <input 
               type="text" 
-              placeholder="যেমন: আলু, পেঁয়াজ বা মুরগি" 
+              placeholder="আলু, মুরগি বা তেলের খরচ" 
               className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none font-bold text-slate-700 transition-all"
               value={expenseDesc}
               onChange={(e) => setExpenseDesc(e.target.value)}
@@ -294,7 +294,7 @@ const App: React.FC = () => {
                 className={`py-4 px-2 rounded-2xl text-[11px] font-black border-2 transition-all active:scale-95 flex flex-col items-center gap-1 ${expenseType === ExpenseType.PERSONAL ? 'bg-rose-600 text-white border-rose-600 shadow-lg shadow-rose-200' : 'bg-white text-slate-400 border-slate-100 hover:border-rose-100'}`}
               >
                 <span>👤</span>
-                <span>ব্যক্তিগত</span>
+                <span>একজনের ব্যক্তিগত</span>
               </button>
             </div>
           </div>
@@ -322,7 +322,7 @@ const App: React.FC = () => {
             className="w-full bg-indigo-700 text-white font-black py-5 rounded-3xl mt-4 shadow-xl shadow-indigo-100 hover:bg-indigo-800 active:scale-95 transition-all text-lg flex items-center justify-center gap-3"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
-            খরচ জমা দিন
+            খরচ যুক্ত করুন
           </button>
         </div>
       </div>
@@ -333,7 +333,7 @@ const App: React.FC = () => {
     <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
       <div className="flex justify-between items-center px-2">
         <h2 className="text-xl font-black text-slate-900">খরচের খাতা</h2>
-        <span className="text-[10px] font-black text-slate-400 bg-white border border-slate-100 px-4 py-2 rounded-full shadow-sm uppercase tracking-widest">{expenses.length} টি খরচ</span>
+        <span className="text-[10px] font-black text-slate-400 bg-white border border-slate-100 px-4 py-2 rounded-full shadow-sm uppercase tracking-widest">{expenses.length} টি এন্ট্রি</span>
       </div>
       {expenses.length === 0 ? (
         <div className="bg-white rounded-3xl p-20 text-center border-2 border-dashed border-slate-100">
@@ -360,7 +360,7 @@ const App: React.FC = () => {
                 <p className="font-black text-slate-900 text-xl">{formatCurrency(exp.amount)}</p>
                 <div className="flex justify-end">
                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase ${exp.type === ExpenseType.SHARED ? 'bg-indigo-50 text-indigo-500' : 'bg-rose-50 text-rose-500'}`}>
-                    {exp.type === ExpenseType.SHARED ? 'SHARED' : 'PERSONAL'}
+                    {exp.type === ExpenseType.SHARED ? 'মেস বাজার' : 'ব্যক্তিগত'}
                    </span>
                 </div>
               </div>
@@ -430,7 +430,7 @@ const App: React.FC = () => {
           ব্যাকআপ ও রিস্টোর
         </h3>
         <p className="text-[11px] text-slate-500 font-bold mb-6 leading-relaxed bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
-           যেহেতু ডাটা আপনার ফোনের ব্রাউজারে সেভ থাকে, তাই ফোন পরিবর্তন করার আগে কোডটি কপি করে অন্য ফোনে রিস্টোর করে নিন। এতে হিসাব হারাবে না।
+           যেহেতু ডাটা আপনার ফোনের ব্রাউজারে সেভ থাকে, তাই Vercel-এ অ্যাপটি আপডেট হলেও ডাটা হারাবে না। তবে ফোন পরিবর্তন করার সময় অবশ্যই ব্যাকআপ নিয়ে রাখবেন।
         </p>
         
         <div className="space-y-4">
@@ -456,13 +456,13 @@ const App: React.FC = () => {
                     navigator.clipboard.writeText(backupText);
                     showToast("কোডটি কপি হয়েছে!");
                   }}
-                  className="py-3 rounded-xl bg-slate-200 text-slate-700 font-black text-[10px] uppercase tracking-wider flex items-center justify-center gap-2"
+                  className="py-3 rounded-xl bg-slate-200 text-slate-700 font-black text-[10px] uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95"
                 >
                   কপি
                 </button>
                 <button 
                   onClick={restoreBackup}
-                  className="py-3 rounded-xl bg-emerald-600 text-white font-black text-[10px] uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-emerald-100"
+                  className="py-3 rounded-xl bg-emerald-600 text-white font-black text-[10px] uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-emerald-100 active:scale-95"
                 >
                   রিস্টোর
                 </button>
