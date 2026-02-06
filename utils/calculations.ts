@@ -1,13 +1,11 @@
 
-import { Member, Expense, ExpenseType, MessSummary, MemberBalance } from '../types';
+import { Member, Expense, ExpenseType, MessSummary, MemberBalance } from '../types.ts';
 
 export const calculateMessSummary = (members: Member[], expenses: Expense[]): MessSummary => {
-  // ১. মোট ম্যাচের বাজার (Shared)
   const totalShared = expenses
     .filter(e => e.type === ExpenseType.SHARED)
     .reduce((sum, e) => sum + e.amount, 0);
 
-  // Initialize a map for calculating balances per member
   const balancesMap = new Map<string, MemberBalance>();
   members.forEach(m => {
     balancesMap.set(m.id, {
@@ -15,30 +13,35 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
       paid: 0,
       sharedShare: 0,
       personalTotal: 0,
+      totalCost: 0,
       netBalance: 0
     });
   });
 
-  // ২. প্রতিটি খরচের জন্য আলাদাভাবে হিসাব করা
+  // Calculate costs and payments
   expenses.forEach(exp => {
-    // কে টাকা দিয়েছে তার পকেট থেকে খরচ (Paid out of pocket) ট্র্যাক করা
-    const payerBalance = balancesMap.get(exp.payerId);
-    if (payerBalance) {
-      payerBalance.paid += exp.amount;
+    // 1. Payment tracking (Who paid from their pocket)
+    const payer = balancesMap.get(exp.payerId);
+    if (payer) {
+      payer.paid += exp.amount;
     }
 
+    // 2. Cost Distribution
     if (exp.type === ExpenseType.SHARED) {
-      // এই খরচটি যখন হয়েছে তখন মেসে কতজন মেম্বার ছিল তা বের করা
-      const activeAtTime = members.filter(m => m.joinDate <= exp.date);
+      // Important: Only members active AT THE TIME of expense get a share
+      const activeAtTime = members.filter(m => 
+        m.joinDate <= exp.date && 
+        (!m.leaveDate || m.leaveDate >= exp.date) // Included on their leave date too
+      );
+
       if (activeAtTime.length > 0) {
-        const slice = exp.amount / activeAtTime.length;
+        const share = exp.amount / activeAtTime.length;
         activeAtTime.forEach(m => {
           const b = balancesMap.get(m.id);
-          if (b) b.sharedShare += slice;
+          if (b) b.sharedShare += share;
         });
       }
     } else if (exp.type === ExpenseType.PERSONAL && exp.targetMemberId) {
-      // ব্যক্তিগত খরচটি সরাসরি ওই ব্যক্তির নামে যোগ করা
       const target = balancesMap.get(exp.targetMemberId);
       if (target) {
         target.personalTotal += exp.amount;
@@ -46,14 +49,18 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
     }
   });
 
-  // ৩. মেম্বারদের ফাইনাল ব্যালেন্স বের করা
-  const memberBalances = Array.from(balancesMap.values()).map(b => ({
-    ...b,
-    netBalance: b.sharedShare + b.personalTotal
-  }));
+  // Finalize totals and balances
+  const memberBalances = Array.from(balancesMap.values()).map(b => {
+    const totalCost = b.sharedShare + b.personalTotal;
+    return {
+      ...b,
+      totalCost,
+      netBalance: b.paid - totalCost // Positive = Refund due, Negative = Must pay
+    };
+  });
 
-  // গড় খরচ (সাধারণ তথ্যের জন্য)
-  const average = members.length > 0 ? totalShared / members.length : 0;
+  const activeCount = members.filter(m => !m.leaveDate).length;
+  const average = activeCount > 0 ? totalShared / activeCount : 0;
 
   return {
     totalSharedExpense: totalShared,
@@ -63,9 +70,12 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
 };
 
 export const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-US', {
+  const absAmount = Math.abs(amount);
+  const formatted = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'SAR',
     minimumFractionDigits: 2
-  }).format(amount).replace('SAR', 'SR');
+  }).format(absAmount).replace('SAR', 'SR');
+  
+  return amount < 0 ? `-${formatted}` : formatted;
 };

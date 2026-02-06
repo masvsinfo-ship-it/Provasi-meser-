@@ -5,83 +5,79 @@ import { calculateMessSummary, formatCurrency } from './utils/calculations.ts';
 import Layout from './components/Layout.tsx';
 import { geminiService } from './services/geminiService.ts';
 
-const STORAGE_KEYS = {
-  MEMBERS: 'mess_members_final_v1',
-  EXPENSES: 'mess_expenses_final_v1'
-};
+const APP_PREFIX = 'mess_tracker_v3_';
 
 const INITIAL_MEMBERS: Member[] = [
-  { id: '1', name: 'বিল্লাল', avatar: 'https://picsum.photos/seed/billal/100', joinDate: 0 },
-  { id: '2', name: 'জামাল', avatar: 'https://picsum.photos/seed/jamal/100', joinDate: 0 },
-  { id: '3', name: 'আব্দুর', avatar: 'https://picsum.photos/seed/abdur/100', joinDate: 0 },
+  { id: '1', name: 'বিল্লাল', avatar: 'https://picsum.photos/seed/billal/100', joinDate: Date.now() - 86400000 },
+  { id: '2', name: 'জামাল', avatar: 'https://picsum.photos/seed/jamal/100', joinDate: Date.now() - 86400000 },
+  { id: '3', name: 'আব্দুর', avatar: 'https://picsum.photos/seed/abdur/100', joinDate: Date.now() - 86400000 },
 ];
 
 const App: React.FC = () => {
+  const [userPhone, setUserPhone] = useState<string | null>(() => localStorage.getItem('logged_in_phone'));
+  const [tempPhone, setTempPhone] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
-  const [showBackupArea, setShowBackupArea] = useState(false);
-  const [backupText, setBackupText] = useState('');
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
-  
-  // initialization from storage
-  const [members, setMembers] = useState<Member[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.MEMBERS);
-      return saved ? JSON.parse(saved) : INITIAL_MEMBERS;
-    } catch (e) {
-      return INITIAL_MEMBERS;
-    }
-  });
 
-  const [expenses, setExpenses] = useState<Expense[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.EXPENSES);
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  });
+  const [members, setMembers] = useState<Member[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
 
-  const [aiInsight, setAiInsight] = useState<string>('হিসাব চেক করা হচ্ছে...');
-  const [newMemberName, setNewMemberName] = useState('');
-  const [expenseDesc, setExpenseDesc] = useState('');
-  const [expenseAmount, setExpenseAmount] = useState('');
-  const [expenseType, setExpenseType] = useState<ExpenseType>(ExpenseType.SHARED);
-  const [payerId, setPayerId] = useState(members[0]?.id || '');
-  const [targetId, setTargetId] = useState('');
-
-  // Toast auto-clear
   useEffect(() => {
-    if (toast) {
-      const timer = setTimeout(() => setToast(null), 3000);
-      return () => clearTimeout(timer);
+    if (userPhone) {
+      const savedMembers = localStorage.getItem(`${APP_PREFIX}${userPhone}_members`);
+      const savedExpenses = localStorage.getItem(`${APP_PREFIX}${userPhone}_expenses`);
+      setMembers(savedMembers ? JSON.parse(savedMembers) : INITIAL_MEMBERS);
+      setExpenses(savedExpenses ? JSON.parse(savedExpenses) : []);
     }
-  }, [toast]);
+  }, [userPhone]);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
   };
 
-  // Auto-save logic
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (tempPhone.length < 10) {
+      showToast("সঠিক মোবাইল নাম্বার দিন", "error");
+      return;
+    }
+    localStorage.setItem('logged_in_phone', tempPhone);
+    setUserPhone(tempPhone);
+    showToast("লগইন সফল হয়েছে!");
+  };
+
+  const handleLogout = () => {
+    if (window.confirm("আপনি কি লগআউট করতে চান?")) {
+      localStorage.removeItem('logged_in_phone');
+      setUserPhone(null);
+      setTempPhone('');
+      setActiveTab('dashboard');
+    }
+  };
+
   useEffect(() => {
-    setSaveStatus('saving');
-    const timer = setTimeout(() => {
-      try {
-        localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(members));
-        localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(expenses));
-        setSaveStatus('saved');
-      } catch (e) {
-        setSaveStatus('error');
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [members, expenses]);
+    if (userPhone && (members.length > 0 || expenses.length > 0)) {
+      setSaveStatus('saving');
+      const timer = setTimeout(() => {
+        try {
+          localStorage.setItem(`${APP_PREFIX}${userPhone}_members`, JSON.stringify(members));
+          localStorage.setItem(`${APP_PREFIX}${userPhone}_expenses`, JSON.stringify(expenses));
+          setSaveStatus('saved');
+        } catch (e) {
+          setSaveStatus('error');
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [members, expenses, userPhone]);
 
   const summary = useMemo(() => calculateMessSummary(members, expenses), [members, expenses]);
 
+  const [aiInsight, setAiInsight] = useState<string>('হিসাব চেক করা হচ্ছে...');
   useEffect(() => {
     const fetchInsight = async () => {
-      if (expenses.length > 0) {
+      if (expenses.length > 0 && userPhone) {
         const insight = await geminiService.getSmartInsight(summary);
         setAiInsight(insight);
       } else {
@@ -89,7 +85,22 @@ const App: React.FC = () => {
       }
     };
     fetchInsight();
-  }, [summary, expenses.length]);
+  }, [summary, expenses.length, userPhone]);
+
+  const [newMemberName, setNewMemberName] = useState('');
+  const [expenseDesc, setExpenseDesc] = useState('');
+  const [expenseAmount, setExpenseAmount] = useState('');
+  const [expenseType, setExpenseType] = useState<ExpenseType>(ExpenseType.SHARED);
+  
+  const activeMembers = useMemo(() => members.filter(m => !m.leaveDate), [members]);
+  const [payerId, setPayerId] = useState('');
+  const [targetId, setTargetId] = useState('');
+
+  useEffect(() => {
+    if (activeMembers.length > 0 && (!payerId || !activeMembers.find(m => m.id === payerId))) {
+      setPayerId(activeMembers[0].id);
+    }
+  }, [activeMembers, payerId]);
 
   const addMember = () => {
     if (!newMemberName.trim()) return;
@@ -103,22 +114,26 @@ const App: React.FC = () => {
     setMembers([...members, newMember]);
     setNewMemberName('');
     showToast(`${newMemberName} যোগ হয়েছে`);
-    if (!payerId) setPayerId(newMember.id);
   };
 
-  const removeMember = (id: string) => {
-    const member = members.find(m => m.id === id);
-    if (!member) return;
-    if (window.confirm(`${member.name}-কে কি সত্যি ডিলিট করতে চান?`)) {
-      setMembers(members.filter(m => m.id !== id));
-      showToast(`${member.name} ডিলিট হয়েছে`, 'error');
+  const leaveMess = (id: string) => {
+    if (window.confirm("আজ থেকে এই মেম্বারের মেসের বাজার খরচ বন্ধ হবে। তার পূর্বের হিসাব সংরক্ষিত থাকবে। নিশ্চিত?")) {
+      setMembers(members.map(m => m.id === id ? { ...m, leaveDate: Date.now() } : m));
+      showToast("হিসাব স্থগিত করা হয়েছে");
     }
   };
 
-  const removeExpense = (id: string) => {
-    if (window.confirm("এই খরচের হিসাবটি ডিলিট করতে চান?")) {
-      setExpenses(expenses.filter(e => e.id !== id));
-      showToast("খরচ ডিলিট হয়েছে", 'error');
+  const rejoinMess = (id: string) => {
+    setMembers(members.map(m => m.id === id ? { ...m, leaveDate: undefined, joinDate: Date.now() } : m));
+    showToast("আবার জয়েন করেছেন");
+  };
+
+  const deleteMember = (id: string) => {
+    const memberName = members.find(m => m.id === id)?.name;
+    if (window.confirm(`${memberName}-কে চিরতরে ডিলিট করতে চান? তার সমস্ত রেকর্ড মুছে যাবে।`)) {
+      setMembers(members.filter(m => m.id !== id));
+      setExpenses(expenses.filter(e => e.payerId !== id && e.targetMemberId !== id));
+      showToast("মেম্বার চিরতরে মুছে ফেলা হয়েছে", "error");
     }
   };
 
@@ -144,91 +159,96 @@ const App: React.FC = () => {
     setActiveTab('dashboard');
   };
 
-  const generateBackup = () => {
-    const data = { members, expenses };
-    const encoded = btoa(JSON.stringify(data));
-    setBackupText(encoded);
-    setShowBackupArea(true);
-    showToast("ব্যাকআপ কোড তৈরি হয়েছে");
-  };
-
-  const restoreBackup = () => {
-    if (!backupText.trim()) return;
-    try {
-      const decoded = JSON.parse(atob(backupText));
-      if (decoded.members && decoded.expenses) {
-        if (window.confirm("রিস্টোর করলে বর্তমান সব হিসাব মুছে যাবে। আপনি কি নিশ্চিত?")) {
-          setMembers(decoded.members);
-          setExpenses(decoded.expenses);
-          showToast("রিস্টোর সফল হয়েছে!");
-          setShowBackupArea(false);
-          setBackupText('');
-        }
-      } else {
-        showToast("ভুল কোড!", "error");
-      }
-    } catch (e) {
-      showToast("কোডটি সঠিক নয়", "error");
+  const removeExpense = (id: string) => {
+    if (window.confirm("এই খরচের রেকর্ডটি মুছে ফেলতে চান?")) {
+      setExpenses(expenses.filter(e => e.id !== id));
+      showToast("রেকর্ড মুছে ফেলা হয়েছে", "error");
     }
   };
+
+  if (!userPhone) {
+    return (
+      <div className="min-h-screen bg-indigo-700 flex flex-col justify-center p-6 text-white max-w-md mx-auto shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32"></div>
+        <div className="relative z-10 text-center space-y-8 animate-in fade-in zoom-in duration-700">
+          <div className="w-24 h-24 bg-white rounded-3xl mx-auto flex items-center justify-center text-5xl shadow-2xl rotate-3">🥘</div>
+          <div className="space-y-2">
+            <h1 className="text-3xl font-black">প্রভাসিদের মেছ</h1>
+            <p className="text-indigo-100 font-medium">মোবাইল নাম্বার দিয়ে লগইন করুন</p>
+          </div>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <input 
+              type="tel" 
+              placeholder="01xxxxxxxxx" 
+              className="w-full bg-white/10 border-2 border-white/20 rounded-2xl px-6 py-5 text-xl font-bold placeholder:text-white/40 focus:bg-white focus:text-indigo-900 outline-none transition-all text-center"
+              value={tempPhone}
+              onChange={(e) => setTempPhone(e.target.value)}
+            />
+            <button className="w-full bg-white text-indigo-700 font-black py-5 rounded-2xl text-xl shadow-xl active:scale-95 transition-all">
+              শুরু করুন
+            </button>
+          </form>
+          <p className="text-[10px] text-white/50 uppercase tracking-widest font-black">Design: বিল্লাল জামালপুর</p>
+        </div>
+      </div>
+    );
+  }
 
   const renderDashboard = () => (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex justify-between items-center px-2">
-        <h2 className="text-slate-900 font-black text-lg">ওভারভিউ</h2>
-        <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm transition-all">
+        <div>
+          <h2 className="text-slate-900 font-black text-lg">মেস স্ট্যাটাস</h2>
+          <p className="text-[10px] font-bold text-slate-400">ID: {userPhone}</p>
+        </div>
+        <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm">
           <div className={`w-2 h-2 rounded-full ${saveStatus === 'saved' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-amber-500 animate-pulse'}`}></div>
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-            {saveStatus === 'saved' ? 'Vercel Deployment: Live' : 'সেভ হচ্ছে...'}
-          </span>
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Auto Saved</span>
         </div>
       </div>
 
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-indigo-50 p-5 rounded-2xl border border-indigo-100 group transition-all hover:scale-105 active:scale-95 cursor-pointer">
-            <p className="text-indigo-600 text-[10px] font-black uppercase tracking-wider mb-1">মোট খরচ</p>
+          <div className="bg-indigo-50 p-5 rounded-2xl border border-indigo-100">
+            <p className="text-indigo-600 text-[10px] font-black uppercase tracking-wider mb-1">মোট বাজার</p>
             <p className="text-slate-900 text-2xl font-black">{formatCurrency(summary.totalSharedExpense)}</p>
           </div>
-          <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100 group transition-all hover:scale-105 active:scale-95 cursor-pointer">
-            <p className="text-emerald-600 text-[10px] font-black uppercase tracking-wider mb-1">জনপ্রতি গড়</p>
-            <p className="text-slate-900 text-2xl font-black">{formatCurrency(summary.averagePerPerson)}</p>
+          <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100">
+            <p className="text-emerald-600 text-[10px] font-black uppercase tracking-wider mb-1">সক্রিয় মেম্বার</p>
+            <p className="text-slate-900 text-2xl font-black">{activeMembers.length} জন</p>
           </div>
         </div>
         
-        <div className="mt-5 p-5 bg-gradient-to-br from-indigo-50/50 to-white rounded-2xl border border-indigo-100/50 flex gap-4 items-start shadow-sm relative overflow-hidden">
-          <div className="text-2xl animate-pulse relative z-10">🤖</div>
-          <p className="text-[12px] text-slate-700 leading-relaxed font-bold relative z-10">{aiInsight}</p>
-          <div className="absolute top-0 right-0 p-1">
-             <span className="text-[8px] font-black text-indigo-200 uppercase tracking-widest">AI INSIGHT</span>
-          </div>
+        <div className="mt-5 p-5 bg-gradient-to-br from-indigo-50 to-white rounded-2xl border border-indigo-100 flex gap-4 items-start">
+          <div className="text-2xl animate-bounce">🤖</div>
+          <p className="text-[12px] text-slate-700 leading-relaxed font-bold">{aiInsight}</p>
         </div>
       </div>
 
       <div className="space-y-3">
-        <div className="flex justify-between items-center px-2">
-          <h2 className="text-slate-900 font-black text-lg">মেম্বারদের বিল</h2>
-          <button onClick={() => setActiveTab('summary')} className="text-indigo-600 text-[10px] font-black bg-indigo-50 px-4 py-2 rounded-full hover:bg-indigo-100 transition-all active:scale-90 uppercase tracking-wider shadow-sm">ম্যানেজ</button>
-        </div>
-        
+        <h2 className="text-slate-900 font-black text-lg px-2">লেনদেন ও বাকি (Net Balance)</h2>
         {summary.memberBalances.map((mb) => (
-          <div key={mb.member.id} className="bg-white rounded-2xl p-4 flex items-center justify-between shadow-sm border border-slate-100 group hover:border-indigo-200 transition-all">
+          <div key={mb.member.id} className={`bg-white rounded-2xl p-4 flex items-center justify-between shadow-sm border border-slate-100 transition-all ${mb.member.leaveDate ? 'opacity-60 bg-slate-50' : 'hover:border-indigo-200'}`}>
             <div className="flex items-center gap-4">
               <div className="relative">
-                <img src={mb.member.avatar} alt="" className="w-12 h-12 rounded-full border-2 border-white shadow-md" />
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full"></div>
+                <img src={mb.member.avatar} alt="" className={`w-12 h-12 rounded-full border-2 border-white shadow-md ${mb.member.leaveDate ? 'grayscale' : ''}`} />
+                <div className={`absolute -bottom-1 -right-1 w-4 h-4 border-2 border-white rounded-full ${mb.member.leaveDate ? 'bg-slate-400' : 'bg-emerald-500'}`}></div>
               </div>
               <div>
-                <p className="font-bold text-slate-900">{mb.member.name}</p>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-tighter">বাজার ভাগ: {formatCurrency(mb.sharedShare)}</p>
+                <p className="font-bold text-slate-900 flex items-center gap-1.5">
+                  {mb.member.name}
+                  {mb.member.leaveDate && <span className="text-[8px] bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-md font-black uppercase">Ex-Member</span>}
+                </p>
+                <p className="text-[10px] text-slate-400 font-black uppercase">মোট খরচ: {formatCurrency(mb.totalCost)}</p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-xl font-black text-slate-900">{formatCurrency(mb.netBalance)}</p>
-              <div className="flex items-center justify-end gap-1">
-                <div className="w-1 h-1 bg-rose-400 rounded-full"></div>
-                <p className="text-[9px] text-rose-500 font-black uppercase">ব্যক্তিগত: {formatCurrency(mb.personalTotal)}</p>
-              </div>
+              <p className={`text-xl font-black ${mb.netBalance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                {mb.netBalance > 0 ? '+' : ''}{formatCurrency(mb.netBalance)}
+              </p>
+              <p className="text-[9px] font-black uppercase text-slate-400">
+                {mb.netBalance >= 0 ? 'ফেরত পাবেন' : 'পরিশোধ করতে হবে'}
+              </p>
             </div>
           </div>
         ))}
@@ -239,14 +259,13 @@ const App: React.FC = () => {
   const renderAddExpense = () => (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-        <h2 className="text-xl font-black text-slate-900 mb-6 text-center">নতুন খরচ যোগ করুন</h2>
-        
+        <h2 className="text-xl font-black text-slate-900 mb-6 text-center">নতুন খরচ এন্ট্রি</h2>
         <div className="space-y-5">
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest px-1">কি বাবদ খরচ?</label>
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">খরচের বিবরণ</label>
             <input 
               type="text" 
-              placeholder="আলু, মুরগি বা তেলের খরচ" 
+              placeholder="যেমন: আজকের সকালের বাজার" 
               className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none font-bold text-slate-700 transition-all"
               value={expenseDesc}
               onChange={(e) => setExpenseDesc(e.target.value)}
@@ -254,63 +273,60 @@ const App: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest px-1">টাকার পরিমাণ</label>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">টাকা (SR)</label>
               <input 
                 type="number" 
                 placeholder="0.00" 
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none font-black text-slate-700 transition-all"
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-indigo-500/10 outline-none font-black text-slate-700 transition-all"
                 value={expenseAmount}
                 onChange={(e) => setExpenseAmount(e.target.value)}
               />
             </div>
-            <div>
-              <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest px-1">কে দিয়েছেন?</label>
-              <div className="relative">
-                <select 
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none appearance-none font-black text-slate-700 transition-all"
-                  value={payerId}
-                  onChange={(e) => setPayerId(e.target.value)}
-                >
-                  {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                </select>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">▼</div>
-              </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">কে খরচ করেছেন?</label>
+              <select 
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none font-black text-slate-700 transition-all cursor-pointer"
+                value={payerId}
+                onChange={(e) => setPayerId(e.target.value)}
+              >
+                {activeMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </select>
             </div>
           </div>
 
-          <div>
-            <label className="block text-[10px] font-black text-slate-400 uppercase mb-3 tracking-widest px-1">খরচের ধরন</label>
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">খরচের ক্যাটাগরি</label>
             <div className="grid grid-cols-2 gap-3">
               <button 
                 onClick={() => setExpenseType(ExpenseType.SHARED)}
-                className={`py-4 px-2 rounded-2xl text-[11px] font-black border-2 transition-all active:scale-95 flex flex-col items-center gap-1 ${expenseType === ExpenseType.SHARED ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-200' : 'bg-white text-slate-400 border-slate-100 hover:border-indigo-100'}`}
+                className={`py-5 rounded-2xl text-[11px] font-black border-2 transition-all flex flex-col items-center gap-1 ${expenseType === ExpenseType.SHARED ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg' : 'bg-white text-slate-400 border-slate-100'}`}
               >
-                <span>📦</span>
+                <span className="text-xl">🥘</span>
                 <span>সবার বাজার</span>
               </button>
               <button 
                 onClick={() => setExpenseType(ExpenseType.PERSONAL)}
-                className={`py-4 px-2 rounded-2xl text-[11px] font-black border-2 transition-all active:scale-95 flex flex-col items-center gap-1 ${expenseType === ExpenseType.PERSONAL ? 'bg-rose-600 text-white border-rose-600 shadow-lg shadow-rose-200' : 'bg-white text-slate-400 border-slate-100 hover:border-rose-100'}`}
+                className={`py-5 rounded-2xl text-[11px] font-black border-2 transition-all flex flex-col items-center gap-1 ${expenseType === ExpenseType.PERSONAL ? 'bg-rose-600 text-white border-rose-600 shadow-lg' : 'bg-white text-slate-400 border-slate-100'}`}
               >
-                <span>👤</span>
-                <span>ব্যক্তিগত</span>
+                <span className="text-xl">🛍️</span>
+                <span>ব্যক্তিগত খরচ</span>
               </button>
             </div>
           </div>
 
           {expenseType === ExpenseType.PERSONAL && (
             <div className="animate-in fade-in zoom-in-95 duration-300 bg-rose-50 p-5 rounded-2xl border border-rose-100">
-              <label className="block text-[10px] font-black text-rose-500 uppercase mb-3 tracking-widest px-1">কার জন্য?</label>
+              <label className="block text-[10px] font-black text-rose-500 uppercase mb-3 tracking-widest">কার ব্যক্তিগত খরচ?</label>
               <div className="grid grid-cols-3 gap-2">
-                {members.map(m => (
+                {activeMembers.map(m => (
                   <button 
                     key={m.id}
                     onClick={() => setTargetId(m.id)}
                     className={`p-2 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${targetId === m.id ? 'bg-white border-rose-500 text-rose-600' : 'bg-white/50 border-transparent text-slate-400'}`}
                   >
                     <img src={m.avatar} className="w-8 h-8 rounded-full" alt="" />
-                    <span className="text-[9px] font-black">{m.name}</span>
+                    <span className="text-[9px] font-black truncate w-full text-center">{m.name}</span>
                   </button>
                 ))}
               </div>
@@ -319,10 +335,9 @@ const App: React.FC = () => {
 
           <button 
             onClick={addExpense}
-            className="w-full bg-indigo-700 text-white font-black py-5 rounded-3xl mt-4 shadow-xl shadow-indigo-100 hover:bg-indigo-800 active:scale-95 transition-all text-lg flex items-center justify-center gap-3"
+            className="w-full bg-indigo-700 text-white font-black py-5 rounded-3xl mt-4 shadow-xl hover:bg-indigo-800 active:scale-95 transition-all text-lg"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
-            খরচ যুক্ত করুন
+            খরচ সেভ করুন
           </button>
         </div>
       </div>
@@ -331,42 +346,31 @@ const App: React.FC = () => {
 
   const renderHistory = () => (
     <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
-      <div className="flex justify-between items-center px-2">
-        <h2 className="text-xl font-black text-slate-900">খরচের খাতা</h2>
-        <span className="text-[10px] font-black text-slate-400 bg-white border border-slate-100 px-4 py-2 rounded-full shadow-sm uppercase tracking-widest">{expenses.length} টি এন্ট্রি</span>
-      </div>
+      <h2 className="text-xl font-black text-slate-900 px-2 flex justify-between items-center">
+        খরচের খাতা
+        <span className="text-[10px] font-black text-slate-400 bg-white border px-4 py-2 rounded-full">{expenses.length} Records</span>
+      </h2>
       {expenses.length === 0 ? (
-        <div className="bg-white rounded-3xl p-20 text-center border-2 border-dashed border-slate-100">
-          <p className="text-slate-300 font-black uppercase text-xs tracking-widest">এখনও কোনো খরচ নেই</p>
-        </div>
+        <div className="p-20 text-center opacity-30 font-black grayscale">এখনও কোনো খরচ নেই</div>
       ) : (
         expenses.map(exp => (
-          <div key={exp.id} className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 flex justify-between items-center group transition-all hover:shadow-md hover:-translate-y-1">
+          <div key={exp.id} className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 flex justify-between items-center group relative overflow-hidden">
             <div className="flex gap-4">
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm ${exp.type === ExpenseType.SHARED ? 'bg-indigo-50 text-indigo-500' : 'bg-rose-50 text-rose-500'}`}>
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl ${exp.type === ExpenseType.SHARED ? 'bg-indigo-50 text-indigo-500' : 'bg-rose-50 text-rose-500'}`}>
                 {exp.type === ExpenseType.SHARED ? '🥘' : '🛍️'}
               </div>
               <div className="flex flex-col justify-center">
                 <p className="font-black text-slate-800 text-base leading-tight">{exp.description}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
-                    {members.find(m => m.id === exp.payerId)?.name} • {new Date(exp.date).toLocaleDateString('bn-BD')}
-                  </span>
-                </div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                  {members.find(m => m.id === exp.payerId)?.name || 'Deleted User'} • {new Date(exp.date).toLocaleDateString('bn-BD')}
+                </span>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="font-black text-slate-900 text-xl">{formatCurrency(exp.amount)}</p>
-                <div className="flex justify-end">
-                   <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase ${exp.type === ExpenseType.SHARED ? 'bg-indigo-50 text-indigo-500' : 'bg-rose-50 text-rose-500'}`}>
-                    {exp.type === ExpenseType.SHARED ? 'মেস বাজার' : 'ব্যক্তিগত'}
-                   </span>
-                </div>
-              </div>
+            <div className="flex items-center gap-4">
+              <p className="font-black text-slate-900 text-xl">{formatCurrency(exp.amount)}</p>
               <button 
-                onClick={() => removeExpense(exp.id)} 
-                className="w-10 h-10 flex items-center justify-center text-rose-200 hover:text-rose-600 transition-colors bg-rose-50 rounded-xl active:scale-90"
+                onClick={() => removeExpense(exp.id)}
+                className="w-8 h-8 flex items-center justify-center text-rose-300 hover:text-rose-600 transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
               </button>
@@ -380,101 +384,65 @@ const App: React.FC = () => {
   const renderSummary = () => (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-        <h3 className="font-black text-slate-900 mb-6 flex justify-between items-center text-xl">
-          মেম্বার লিস্ট
-          <span className="text-[10px] bg-indigo-50 text-indigo-600 px-4 py-2 rounded-full font-black uppercase tracking-wider shadow-sm">{members.length} জন</span>
-        </h3>
+        <h3 className="font-black text-slate-900 mb-6 flex justify-between items-center text-xl">মেম্বার ম্যানেজমেন্ট</h3>
         
         <div className="flex gap-2 mb-8">
           <input 
             type="text" 
             placeholder="নতুন মেম্বারের নাম" 
-            className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 font-bold transition-all placeholder:text-slate-300"
+            className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none font-bold"
             value={newMemberName}
             onChange={(e) => setNewMemberName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addMember()}
           />
-          <button 
-            onClick={addMember} 
-            className="bg-indigo-600 text-white px-6 py-4 rounded-2xl font-black shadow-lg shadow-indigo-100 active:scale-95 transition-all"
-          >
-            যোগ
-          </button>
+          <button onClick={addMember} className="bg-indigo-600 text-white px-6 py-4 rounded-2xl font-black active:scale-95 transition-all">যোগ</button>
         </div>
         
         <div className="space-y-4">
           {members.map(m => (
-            <div key={m.id} className="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-indigo-100 transition-all group">
-              <div className="flex items-center gap-4">
-                <img src={m.avatar} className="w-12 h-12 rounded-full shadow-sm border-2 border-white" alt="" />
-                <div className="flex flex-col">
-                  <span className="font-black text-slate-800 text-lg leading-tight">{m.name}</span>
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">যোগদান: {m.joinDate === 0 ? 'শুরু থেকে' : new Date(m.joinDate).toLocaleDateString('bn-BD')}</span>
+            <div key={m.id} className={`flex flex-col p-4 bg-slate-50 rounded-2xl border border-slate-100 ${m.leaveDate ? 'opacity-70 bg-slate-100' : ''}`}>
+              <div className="flex justify-between items-center mb-3">
+                <div className="flex items-center gap-4">
+                  <img src={m.avatar} className={`w-12 h-12 rounded-full border-2 border-white ${m.leaveDate ? 'grayscale' : ''}`} alt="" />
+                  <div>
+                    <span className="font-black text-slate-800 text-lg">{m.name}</span>
+                    <p className="text-[9px] text-slate-400 font-black uppercase">
+                      {m.leaveDate ? `মেছ ছেড়েছেন: ${new Date(m.leaveDate).toLocaleDateString('bn-BD')}` : 'বর্তমানে সক্রিয়'}
+                    </p>
+                  </div>
                 </div>
+                <button 
+                  onClick={() => deleteMember(m.id)}
+                  className="text-rose-400 hover:text-rose-600 p-2 bg-white rounded-xl shadow-sm border border-rose-50 active:scale-90 transition-all"
+                  title="চিরতরে ডিলিট করুন"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </button>
               </div>
-              <button 
-                onClick={() => removeMember(m.id)} 
-                className="text-rose-400 bg-white p-3 rounded-xl border border-rose-100 transition-all hover:bg-rose-500 hover:text-white active:scale-90 shadow-sm"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-              </button>
+              
+              <div className="flex gap-2">
+                {!m.leaveDate ? (
+                  <button onClick={() => leaveMess(m.id)} className="flex-1 bg-amber-100 text-amber-700 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider active:scale-95 transition-all shadow-sm">হিসাব বন্ধ করুন (মেছ ছেড়েছেন)</button>
+                ) : (
+                  <button onClick={() => rejoinMess(m.id)} className="flex-1 bg-emerald-100 text-emerald-700 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider active:scale-95 transition-all shadow-sm">আবার জয়েন করান</button>
+                )}
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/50 rounded-full -translate-y-16 translate-x-16 -z-10"></div>
-        <h3 className="font-black text-slate-900 mb-4 text-xl flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-xl">🛡️</div>
-          ব্যাকআপ ও রিস্টোর
-        </h3>
-        <p className="text-[11px] text-slate-500 font-bold mb-6 leading-relaxed bg-indigo-50/50 p-3 rounded-xl border border-indigo-100">
-           যেহেতু ডাটা আপনার ফোনের ব্রাউজারে সেভ থাকে, তাই Vercel-এ অ্যাপটি আপডেট হলেও ডাটা হারাবে না। তবে ফোন পরিবর্তন করার সময় অবশ্যই ব্যাকআপ নিয়ে রাখবেন।
-        </p>
-        
-        <div className="space-y-4">
-          <button 
-            onClick={generateBackup}
-            className="w-full py-4 rounded-2xl bg-indigo-600 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-100 transition-all active:scale-95 flex items-center justify-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
-            ব্যাকআপ কোড তৈরি করুন
-          </button>
-
-          {showBackupArea && (
-            <div className="animate-in slide-in-from-top-4 duration-300 space-y-4 bg-slate-50 p-4 rounded-2xl border-2 border-dashed border-indigo-200">
-              <textarea 
-                className="w-full h-32 bg-white border border-slate-200 rounded-xl p-4 text-[10px] font-mono break-all outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner"
-                value={backupText}
-                onChange={(e) => setBackupText(e.target.value)}
-                placeholder="ব্যাকআপ কোড এখানে পেস্ট করুন"
-              />
-              <div className="grid grid-cols-2 gap-3">
-                <button 
-                  onClick={() => {
-                    navigator.clipboard.writeText(backupText);
-                    showToast("কোডটি কপি হয়েছে!");
-                  }}
-                  className="py-3 rounded-xl bg-slate-200 text-slate-700 font-black text-[10px] uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95"
-                >
-                  কপি
-                </button>
-                <button 
-                  onClick={restoreBackup}
-                  className="py-3 rounded-xl bg-emerald-600 text-white font-black text-[10px] uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-emerald-100 active:scale-95"
-                >
-                  রিস্টোর
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+        <h3 className="font-black text-slate-900 mb-4 text-xl">অ্যাপ সেটিংস</h3>
+        <button 
+          onClick={handleLogout}
+          className="w-full py-4 rounded-2xl bg-rose-50 text-rose-600 font-black text-xs uppercase tracking-widest border border-rose-100 transition-all active:scale-95 flex items-center justify-center gap-2"
+        >
+          লগআউট করুন (ID: {userPhone})
+        </button>
       </div>
-
-      <p className="text-center text-slate-300 text-[9px] font-black uppercase tracking-[0.4em] pt-10 pb-4">
-        ডিজাইন ও ডেভেলপমেন্ট: বিল্লাল জামালপুর
-      </p>
+      
+      <p className="text-center text-slate-300 text-[9px] font-black uppercase tracking-[0.4em] pt-10 pb-4">বিল্লাল জামালপুর</p>
     </div>
   );
 
@@ -487,7 +455,6 @@ const App: React.FC = () => {
         {activeTab === 'summary' && renderSummary()}
       </div>
 
-      {/* Custom Toast Notification */}
       {toast && (
         <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 ${toast.type === 'success' ? 'bg-indigo-600 text-white' : 'bg-rose-600 text-white'}`}>
           <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>

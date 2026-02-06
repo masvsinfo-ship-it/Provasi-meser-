@@ -8,7 +8,8 @@ export interface Member {
   id: string;
   name: string;
   avatar: string;
-  joinDate: number; // Timestamp when the member joined
+  joinDate: number;
+  leaveDate?: number;
 }
 
 export interface Expense {
@@ -16,17 +17,18 @@ export interface Expense {
   description: string;
   amount: number;
   type: ExpenseType;
-  payerId: string; // The person who actually paid
-  targetMemberId?: string; // Only for PERSONAL expenses
-  date: number; // Timestamp when expense occurred
+  payerId: string;
+  targetMemberId?: string;
+  date: number;
 }
 
 export interface MemberBalance {
   member: Member;
-  paid: number;
-  sharedShare: number;
-  personalTotal: number;
-  netBalance: number;
+  paid: number;         // Total amount this person paid out of pocket
+  sharedShare: number;  // Their share of mess market (up to leave date)
+  personalTotal: number; // Their personal specific expenses
+  totalCost: number;    // sharedShare + personalTotal
+  netBalance: number;   // paid - totalCost (positive means they get money back)
 }
 
 export interface MessSummary {
