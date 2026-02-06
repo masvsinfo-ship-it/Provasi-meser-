@@ -100,6 +100,27 @@ const App: React.FC = () => {
 
   const summary = useMemo(() => calculateMessSummary(members, expenses), [members, expenses]);
 
+  // Group expenses by month
+  const groupedExpenses = useMemo(() => {
+    const groups: { [key: string]: { monthName: string, expenses: Expense[], total: number } } = {};
+    
+    expenses.forEach(exp => {
+      const date = new Date(exp.date);
+      const key = `${date.getFullYear()}-${date.getMonth()}`;
+      if (!groups[key]) {
+        const monthName = new Intl.DateTimeFormat('bn-BD', { month: 'long', year: 'numeric' }).format(date);
+        groups[key] = { monthName, expenses: [], total: 0 };
+      }
+      groups[key].expenses.push(exp);
+      groups[key].total += exp.amount;
+    });
+
+    // Sort months descending
+    return Object.keys(groups)
+      .sort((a, b) => b.localeCompare(a))
+      .map(key => groups[key]);
+  }, [expenses]);
+
   // Alert system for high debt
   useEffect(() => {
     const highDebtMembers = summary.memberBalances.filter(mb => Math.abs(mb.netBalance) > DEBT_LIMIT && !mb.member.leaveDate);
@@ -184,6 +205,13 @@ const App: React.FC = () => {
     setExpenseAmount('');
     showToast("বাকিতে কেনাকাটা সেভ হয়েছে!");
     setActiveTab('dashboard');
+  };
+
+  const deleteExpense = (id: string) => {
+    if (window.confirm("আপনি কি এই খরচের হিসাবটি ডিলিট করতে চান?")) {
+      setExpenses(expenses.filter(e => e.id !== id));
+      showToast("হিসাবটি ডিলিট করা হয়েছে", "error");
+    }
   };
 
   const renderDashboard = () => (
@@ -355,31 +383,54 @@ const App: React.FC = () => {
   );
 
   const renderHistory = () => (
-    <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
+    <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500 pb-8">
       <h2 className="text-xl font-black text-slate-900 px-2 flex justify-between items-center">
         দোকান বাকি খাতা
         <span className="text-[10px] font-black text-slate-400 bg-white border px-3 py-1 rounded-full">{expenses.length} Records</span>
       </h2>
-      {expenses.length === 0 ? (
+      
+      {groupedExpenses.length === 0 ? (
         <div className="py-20 text-center opacity-20 font-black grayscale flex flex-col items-center gap-4">
           <span className="text-6xl">📖</span>
           <span>খাতা একদম খালি!</span>
         </div>
       ) : (
-        expenses.map(exp => (
-          <div key={exp.id} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex justify-between items-center">
-            <div className="flex gap-4">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${exp.type === ExpenseType.SHARED ? 'bg-indigo-50 text-indigo-500' : 'bg-rose-50 text-rose-500'}`}>
-                {exp.type === ExpenseType.SHARED ? '🍛' : '👤'}
-              </div>
-              <div>
-                <p className="font-black text-slate-800">{exp.description}</p>
-                <p className="text-[9px] font-black text-slate-400 uppercase">
-                  {exp.type === ExpenseType.SHARED ? 'সবার খরচ' : `ব্যক্তিগত (${members.find(m => m.id === exp.targetMemberId)?.name})`} • {new Date(exp.date).toLocaleDateString('bn-BD')}
-                </p>
-              </div>
+        groupedExpenses.map((group, gIdx) => (
+          <div key={group.monthName} className="space-y-3">
+            <div className="flex justify-between items-center px-3 sticky top-[104px] bg-slate-50/95 backdrop-blur-md py-2 z-10 border-b border-slate-100">
+              <span className="text-[11px] font-black uppercase text-indigo-500 tracking-wider">{group.monthName}</span>
+              <span className="text-[10px] font-bold text-slate-400">মোট: {formatCurrency(group.total)}</span>
             </div>
-            <p className="font-black text-rose-600 text-lg">{formatCurrency(exp.amount)}</p>
+            
+            <div className="space-y-3 px-1">
+              {group.expenses.map(exp => (
+                <div key={exp.id} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex justify-between items-center group transition-all hover:border-indigo-100">
+                  <div className="flex gap-4">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl shadow-sm ${exp.type === ExpenseType.SHARED ? 'bg-indigo-50 text-indigo-500' : 'bg-rose-50 text-rose-500'}`}>
+                      {exp.type === ExpenseType.SHARED ? '🍛' : '👤'}
+                    </div>
+                    <div className="flex flex-col">
+                      <p className="font-black text-slate-800 leading-tight">{exp.description}</p>
+                      <p className="text-[9px] font-black text-slate-400 uppercase mt-1">
+                        {exp.type === ExpenseType.SHARED ? 'সবার খরচ' : `ব্যক্তিগত (${members.find(m => m.id === exp.targetMemberId)?.name})`} • {new Date(exp.date).toLocaleDateString('bn-BD')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <p className="font-black text-rose-600 text-lg">{formatCurrency(exp.amount)}</p>
+                    <button 
+                      onClick={() => deleteExpense(exp.id)}
+                      className="p-2 text-rose-300 hover:text-rose-600 bg-rose-50/50 hover:bg-rose-50 rounded-lg transition-all active:scale-90"
+                      title="ডিলিট করুন"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ))
       )}
