@@ -9,12 +9,6 @@ const APP_PREFIX = 'mess_tracker_v3_';
 const USERS_KEY = 'mess_tracker_auth_users';
 const DEBT_LIMIT = 300; // Threshold for warning
 
-const INITIAL_MEMBERS: Member[] = [
-  { id: '1', name: 'বিল্লাল', avatar: 'https://picsum.photos/seed/billal/100', joinDate: Date.now() - 86400000 },
-  { id: '2', name: 'জামাল', avatar: 'https://picsum.photos/seed/jamal/100', joinDate: Date.now() - 86400000 },
-  { id: '3', name: 'আব্দুর', avatar: 'https://picsum.photos/seed/abdur/100', joinDate: Date.now() - 86400000 },
-];
-
 const App: React.FC = () => {
   const [userPhone, setUserPhone] = useState<string | null>(() => localStorage.getItem('logged_in_phone'));
   const [isLoginMode, setIsLoginMode] = useState(true);
@@ -26,12 +20,17 @@ const App: React.FC = () => {
 
   const [members, setMembers] = useState<Member[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  
+  // State for editing member name
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  const [editNameValue, setEditNameValue] = useState('');
 
   useEffect(() => {
     if (userPhone) {
       const savedMembers = localStorage.getItem(`${APP_PREFIX}${userPhone}_members`);
       const savedExpenses = localStorage.getItem(`${APP_PREFIX}${userPhone}_expenses`);
-      setMembers(savedMembers ? JSON.parse(savedMembers) : INITIAL_MEMBERS);
+      // Default to empty array if no data found
+      setMembers(savedMembers ? JSON.parse(savedMembers) : []);
       setExpenses(savedExpenses ? JSON.parse(savedExpenses) : []);
     }
   }, [userPhone]);
@@ -100,7 +99,6 @@ const App: React.FC = () => {
 
   const summary = useMemo(() => calculateMessSummary(members, expenses), [members, expenses]);
 
-  // Group expenses by month
   const groupedExpenses = useMemo(() => {
     const groups: { [key: string]: { monthName: string, expenses: Expense[], total: number } } = {};
     
@@ -115,13 +113,11 @@ const App: React.FC = () => {
       groups[key].total += exp.amount;
     });
 
-    // Sort months descending
     return Object.keys(groups)
       .sort((a, b) => b.localeCompare(a))
       .map(key => groups[key]);
   }, [expenses]);
 
-  // Alert system for high debt
   useEffect(() => {
     const highDebtMembers = summary.memberBalances.filter(mb => Math.abs(mb.netBalance) > DEBT_LIMIT && !mb.member.leaveDate);
     if (highDebtMembers.length > 0) {
@@ -183,6 +179,18 @@ const App: React.FC = () => {
       setExpenses(expenses.filter(e => e.targetMemberId !== id));
       showToast("মেম্বার মুছে ফেলা হয়েছে", "error");
     }
+  };
+
+  const startEditMember = (member: Member) => {
+    setEditingMemberId(member.id);
+    setEditNameValue(member.name);
+  };
+
+  const saveMemberName = () => {
+    if (!editNameValue.trim()) return;
+    setMembers(members.map(m => m.id === editingMemberId ? { ...m, name: editNameValue.trim() } : m));
+    setEditingMemberId(null);
+    showToast("নাম পরিবর্তন করা হয়েছে");
   };
 
   const addExpense = () => {
@@ -256,50 +264,56 @@ const App: React.FC = () => {
           মেম্বার প্রতি দেনার হিসাব
           <span className="text-[10px] font-black text-rose-500">Limit: {formatCurrency(DEBT_LIMIT)}</span>
         </h2>
-        {summary.memberBalances.map((mb) => {
-          const isOverLimit = Math.abs(mb.netBalance) > DEBT_LIMIT && !mb.member.leaveDate;
-          return (
-            <div key={mb.member.id} className={`bg-white rounded-2xl p-4 flex flex-col gap-3 shadow-sm border-2 transition-all ${isOverLimit ? 'border-rose-200 bg-rose-50/10' : 'border-slate-100'} ${mb.member.leaveDate ? 'opacity-50 grayscale' : ''}`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <img src={mb.member.avatar} className={`w-12 h-12 rounded-full border-2 shadow-sm ${isOverLimit ? 'border-rose-400' : 'border-indigo-100'}`} alt="" />
-                    {isOverLimit && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-full flex items-center justify-center border-2 border-white animate-bounce shadow-lg">
-                        <span className="text-white text-[10px] font-black">!</span>
-                      </div>
-                    )}
+        {summary.memberBalances.length === 0 ? (
+          <div className="py-12 text-center bg-white rounded-2xl border border-slate-100">
+            <p className="text-slate-400 font-bold text-sm">কোন মেম্বার পাওয়া যায়নি। ম্যানেজমেন্ট থেকে যোগ করুন।</p>
+          </div>
+        ) : (
+          summary.memberBalances.map((mb) => {
+            const isOverLimit = Math.abs(mb.netBalance) > DEBT_LIMIT && !mb.member.leaveDate;
+            return (
+              <div key={mb.member.id} className={`bg-white rounded-2xl p-4 flex flex-col gap-3 shadow-sm border-2 transition-all ${isOverLimit ? 'border-rose-200 bg-rose-50/10' : 'border-slate-100'} ${mb.member.leaveDate ? 'opacity-50 grayscale' : ''}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <img src={mb.member.avatar} className={`w-12 h-12 rounded-full border-2 shadow-sm ${isOverLimit ? 'border-rose-400' : 'border-indigo-100'}`} alt="" />
+                      {isOverLimit && (
+                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 rounded-full flex items-center justify-center border-2 border-white animate-bounce shadow-lg">
+                          <span className="text-white text-[10px] font-black">!</span>
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-800 flex items-center gap-2">
+                        {mb.member.name}
+                        {mb.member.leaveDate && <span className="text-[8px] bg-slate-200 px-2 py-0.5 rounded font-black">EX-MEMBER</span>}
+                        {isOverLimit && <span className="text-[8px] bg-rose-500 text-white px-2 py-0.5 rounded font-black uppercase tracking-tighter animate-pulse">OVER LIMIT</span>}
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-black uppercase">দোকানদার পাবে</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-bold text-slate-800 flex items-center gap-2">
-                      {mb.member.name}
-                      {mb.member.leaveDate && <span className="text-[8px] bg-slate-200 px-2 py-0.5 rounded font-black">EX-MEMBER</span>}
-                      {isOverLimit && <span className="text-[8px] bg-rose-500 text-white px-2 py-0.5 rounded font-black uppercase tracking-tighter animate-pulse">OVER LIMIT</span>}
+                  <div className="text-right">
+                    <p className={`text-xl font-black ${isOverLimit ? 'text-rose-700' : 'text-rose-600'}`}>
+                      {formatCurrency(Math.abs(mb.netBalance))}
                     </p>
-                    <p className="text-[10px] text-slate-400 font-black uppercase">দোকানদার পাবে</p>
+                    {isOverLimit && <p className="text-[7px] text-rose-500 font-black uppercase mt-0.5">টাকা পরিশোধ করুন!</p>}
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className={`text-xl font-black ${isOverLimit ? 'text-rose-700' : 'text-rose-600'}`}>
-                    {formatCurrency(Math.abs(mb.netBalance))}
-                  </p>
-                  {isOverLimit && <p className="text-[7px] text-rose-500 font-black uppercase mt-0.5">টাকা পরিশোধ করুন!</p>}
+                
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-50">
+                  <div className="bg-slate-50/50 p-2 rounded-xl">
+                    <p className="text-[8px] font-black text-slate-400 uppercase mb-0.5">মেস বাজার শেয়ার</p>
+                    <p className="text-[11px] font-black text-slate-700">{formatCurrency(mb.sharedShare)}</p>
+                  </div>
+                  <div className={`p-2 rounded-xl border ${mb.personalTotal > (DEBT_LIMIT/2) ? 'bg-rose-50 border-rose-100' : 'bg-slate-50/50 border-slate-100'}`}>
+                    <p className={`text-[8px] font-black uppercase mb-0.5 ${mb.personalTotal > (DEBT_LIMIT/2) ? 'text-rose-400' : 'text-slate-400'}`}>ব্যক্তিগত বাকি</p>
+                    <p className="text-[11px] font-black text-slate-700">{formatCurrency(mb.personalTotal)}</p>
+                  </div>
                 </div>
               </div>
-              
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-50">
-                <div className="bg-slate-50/50 p-2 rounded-xl">
-                  <p className="text-[8px] font-black text-slate-400 uppercase mb-0.5">মেস বাজার শেয়ার</p>
-                  <p className="text-[11px] font-black text-slate-700">{formatCurrency(mb.sharedShare)}</p>
-                </div>
-                <div className={`p-2 rounded-xl border ${mb.personalTotal > (DEBT_LIMIT/2) ? 'bg-rose-50 border-rose-100' : 'bg-slate-50/50 border-slate-100'}`}>
-                  <p className={`text-[8px] font-black uppercase mb-0.5 ${mb.personalTotal > (DEBT_LIMIT/2) ? 'text-rose-400' : 'text-slate-400'}`}>ব্যক্তিগত বাকি</p>
-                  <p className="text-[11px] font-black text-slate-700">{formatCurrency(mb.personalTotal)}</p>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
     </div>
   );
@@ -438,7 +452,7 @@ const App: React.FC = () => {
   );
 
   const renderSummary = () => (
-    <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+    <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500 pb-20">
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <h3 className="font-black text-slate-900 mb-6 text-xl">মেম্বার ম্যানেজমেন্ট</h3>
         
@@ -454,31 +468,55 @@ const App: React.FC = () => {
         </div>
         
         <div className="space-y-3">
-          {members.map(m => (
-            <div key={m.id} className={`flex flex-col p-4 bg-slate-50 rounded-2xl border border-slate-100 ${m.leaveDate ? 'opacity-60 grayscale' : ''}`}>
-              <div className="flex justify-between items-center mb-3">
-                <div className="flex items-center gap-4">
-                  <img src={m.avatar} className="w-10 h-10 rounded-full border border-indigo-200" alt="" />
-                  <div>
-                    <span className="font-black text-slate-800">{m.name}</span>
-                    <p className="text-[8px] text-slate-400 font-bold uppercase">{m.leaveDate ? 'EX-MEMBER' : 'ACTIVE'}</p>
+          {members.length === 0 ? (
+            <p className="text-center text-slate-400 py-6 font-bold text-sm">কোন মেম্বার নেই। নাম লিখে যোগ করুন।</p>
+          ) : (
+            members.map(m => (
+              <div key={m.id} className={`flex flex-col p-4 bg-slate-50 rounded-2xl border border-slate-100 ${m.leaveDate ? 'opacity-60 grayscale' : ''}`}>
+                <div className="flex justify-between items-center mb-3">
+                  <div className="flex items-center gap-4 flex-1">
+                    <img src={m.avatar} className="w-10 h-10 rounded-full border border-indigo-200" alt="" />
+                    <div className="flex-1">
+                      {editingMemberId === m.id ? (
+                        <div className="flex gap-2 items-center">
+                          <input 
+                            autoFocus
+                            className="bg-white border border-indigo-200 rounded-lg px-2 py-1 font-bold text-slate-800 w-full outline-none focus:ring-2 focus:ring-indigo-500"
+                            value={editNameValue}
+                            onChange={(e) => setEditNameValue(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && saveMemberName()}
+                          />
+                          <button onClick={saveMemberName} className="p-2 bg-indigo-600 text-white rounded-lg">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-slate-800">{m.name}</span>
+                          <button onClick={() => startEditMember(m)} className="text-slate-400 hover:text-indigo-600 transition-colors">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                          </button>
+                        </div>
+                      )}
+                      <p className="text-[8px] text-slate-400 font-bold uppercase">{m.leaveDate ? 'EX-MEMBER' : 'ACTIVE'}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => deleteMember(m.id)} className="text-rose-400 p-2 bg-white rounded-lg border border-rose-50 shadow-sm active:scale-90 transition-all">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => deleteMember(m.id)} className="text-rose-400 p-2 bg-white rounded-lg border border-rose-50 shadow-sm active:scale-90 transition-all">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                  </button>
+                  {!m.leaveDate ? (
+                    <button onClick={() => leaveMess(m.id)} className="flex-1 bg-white text-amber-600 border border-amber-100 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider shadow-sm">হিসাব স্থগিত (Leaved)</button>
+                  ) : (
+                    <button onClick={() => rejoinMess(m.id)} className="flex-1 bg-white text-emerald-600 border border-emerald-100 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider shadow-sm">আবার জয়েন করান</button>
+                  )}
                 </div>
               </div>
-              <div className="flex gap-2">
-                {!m.leaveDate ? (
-                  <button onClick={() => leaveMess(m.id)} className="flex-1 bg-white text-amber-600 border border-amber-100 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider shadow-sm">হিসাব স্থগিত (Leaved)</button>
-                ) : (
-                  <button onClick={() => rejoinMess(m.id)} className="flex-1 bg-white text-emerald-600 border border-emerald-100 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider shadow-sm">আবার জয়েন করান</button>
-                )}
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 
