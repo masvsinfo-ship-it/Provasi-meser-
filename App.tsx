@@ -10,7 +10,9 @@ const USERS_KEY = 'mess_tracker_auth_users';
 
 const App: React.FC = () => {
   const [userPhone, setUserPhone] = useState<string | null>(() => localStorage.getItem('logged_in_phone'));
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => localStorage.getItem('is_admin') === 'true');
   const [isLoginMode, setIsLoginMode] = useState(true);
+  const [isAdminTab, setIsAdminTab] = useState(false);
   const [tempPhone, setTempPhone] = useState('');
   const [tempPassword, setTempPassword] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -32,7 +34,7 @@ const App: React.FC = () => {
   }, [userPhone]);
 
   const saveToDisk = (updatedMembers: Member[], updatedExpenses: Expense[]) => {
-    if (userPhone) {
+    if (userPhone && !isAdmin) { // Only save if not in admin view mode or handle admin saving differently
       localStorage.setItem(`${APP_PREFIX}${userPhone}_members`, JSON.stringify(updatedMembers));
       localStorage.setItem(`${APP_PREFIX}${userPhone}_expenses`, JSON.stringify(updatedExpenses));
     }
@@ -45,6 +47,18 @@ const App: React.FC = () => {
 
   const handleAuth = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (isAdminTab) {
+      if (tempPassword === '8795') {
+        localStorage.setItem('is_admin', 'true');
+        setIsAdmin(true);
+        showToast("এডমিন লগিন সফল!");
+      } else {
+        showToast("ভুল এডমিন পাসওয়ার্ড!", "error");
+      }
+      return;
+    }
+
     if (tempPhone.length < 10 || tempPassword.length < 4) {
       showToast("সঠিক তথ্য দিন (পাসওয়ার্ড ৪ অক্ষর)", "error");
       return;
@@ -55,7 +69,9 @@ const App: React.FC = () => {
     if (isLoginMode) {
       if (users[tempPhone] && users[tempPhone] === tempPassword) {
         localStorage.setItem('logged_in_phone', tempPhone);
+        localStorage.setItem('is_admin', 'false');
         setUserPhone(tempPhone);
+        setIsAdmin(false);
         showToast("লগইন সফল!");
       } else {
         showToast("নাম্বার বা পাসওয়ার্ড ভুল!", "error");
@@ -67,7 +83,9 @@ const App: React.FC = () => {
         users[tempPhone] = tempPassword;
         localStorage.setItem(USERS_KEY, JSON.stringify(users));
         localStorage.setItem('logged_in_phone', tempPhone);
+        localStorage.setItem('is_admin', 'false');
         setUserPhone(tempPhone);
+        setIsAdmin(false);
         showToast("রেজিস্ট্রেশন সফল!");
       }
     }
@@ -76,7 +94,9 @@ const App: React.FC = () => {
   const handleLogout = () => {
     if (window.confirm("লগআউট করতে চান?")) {
       localStorage.removeItem('logged_in_phone');
+      localStorage.removeItem('is_admin');
       setUserPhone(null);
+      setIsAdmin(false);
       setActiveTab('dashboard');
     }
   };
@@ -97,7 +117,7 @@ const App: React.FC = () => {
   }, [summary, expenses.length, userPhone, currencyCode]);
 
   const addMember = () => {
-    if (!tempPhone) return; // safety
+    if (isAdmin) { showToast("এডমিন শুধু দেখতে পারবেন", "warning"); return; }
     const nameInput = (document.getElementById('member-name-input') as HTMLInputElement)?.value;
     if (!nameInput?.trim()) return;
     
@@ -115,6 +135,7 @@ const App: React.FC = () => {
   };
 
   const deleteMemberRecord = (id: string) => {
+    if (isAdmin) { showToast("এডমিন শুধু দেখতে পারবেন", "warning"); return; }
     if (window.confirm("আপনি কি নিশ্চিতভাবে এই মেম্বারকে ডিলিট করতে চান? তার সকল ডাটা চিরতরে মুছে যাবে।")) {
       const updatedMembers = members.filter(m => m.id !== id);
       const updatedExpenses = expenses.filter(e => e.targetMemberId !== id);
@@ -126,6 +147,7 @@ const App: React.FC = () => {
   };
 
   const leaveMember = (id: string) => {
+    if (isAdmin) { showToast("এডমিন শুধু দেখতে পারবেন", "warning"); return; }
     if (window.confirm("এই মেম্বার কি মেছ ছেড়ে দিচ্ছেন? তার হিসাব আর নতুন বাজারের সাথে যোগ হবে না।")) {
       const updated = members.map(m => m.id === id ? { ...m, leaveDate: Date.now() } : m);
       setMembers(updated);
@@ -135,6 +157,7 @@ const App: React.FC = () => {
   };
 
   const rejoinMember = (id: string) => {
+    if (isAdmin) { showToast("এডমিন শুধু দেখতে পারবেন", "warning"); return; }
     const updated = members.map(m => m.id === id ? { ...m, leaveDate: undefined } : m);
     setMembers(updated);
     saveToDisk(updated, expenses);
@@ -147,6 +170,7 @@ const App: React.FC = () => {
   const [targetId, setTargetId] = useState('');
 
   const addExpense = () => {
+    if (isAdmin) { showToast("এডমিন শুধু দেখতে পারবেন", "warning"); return; }
     const amount = parseFloat(expenseAmount);
     if (!expenseDesc || isNaN(amount)) {
       showToast("সব তথ্য দিন", "error");
@@ -176,6 +200,7 @@ const App: React.FC = () => {
   };
 
   const deleteExpense = (id: string) => {
+    if (isAdmin) { showToast("এডমিন শুধু দেখতে পারবেন", "warning"); return; }
     if (window.confirm("লেনদেনটি ডিলিট করতে চান?")) {
       const updated = expenses.filter(e => e.id !== id);
       setExpenses(updated);
@@ -186,6 +211,46 @@ const App: React.FC = () => {
 
   const activeMembers = members.filter(m => !m.leaveDate);
   const leftMembers = members.filter(m => m.leaveDate);
+
+  const getAllUsers = () => {
+    const storedUsersRaw = localStorage.getItem(USERS_KEY);
+    return storedUsersRaw ? Object.keys(JSON.parse(storedUsersRaw)) : [];
+  };
+
+  const renderAdminView = () => (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+        <h2 className="text-xl font-black text-slate-900 mb-4 flex items-center gap-2">
+          <span className="text-2xl">👤</span> ইউজার তালিকা (Admin)
+        </h2>
+        <p className="text-xs text-slate-500 mb-4 font-bold">যেকোনো ইউজারে ক্লিক করে তাদের মেছের হিসাব দেখুন।</p>
+        <div className="space-y-3">
+          {getAllUsers().map(phone => (
+            <button 
+              key={phone} 
+              onClick={() => setUserPhone(phone)}
+              className={`w-full text-left p-4 rounded-2xl border transition-all flex justify-between items-center ${userPhone === phone ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-slate-50 hover:bg-slate-100 text-slate-700'}`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold">
+                  {phone.slice(-2)}
+                </div>
+                <span className="font-black">{phone}</span>
+              </div>
+              <svg className="w-5 h-5 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+          ))}
+          {getAllUsers().length === 0 && <p className="text-center py-10 text-slate-300 font-bold">কোনো ইউজার পাওয়া যায়নি।</p>}
+        </div>
+      </div>
+      
+      {userPhone && (
+        <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 text-center">
+          <p className="text-xs font-bold text-indigo-600">বর্তমানে দেখছেন: <span className="font-black underline">{userPhone}</span> এর হিসাব</p>
+        </div>
+      )}
+    </div>
+  );
 
   const renderDashboard = () => (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -263,21 +328,30 @@ const App: React.FC = () => {
     </div>
   );
 
-  if (!userPhone) {
+  if (!userPhone && !isAdmin) {
     return (
       <div className="min-h-screen bg-indigo-800 flex flex-col justify-center p-6 text-white text-center relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -translate-y-40 translate-x-40 blur-3xl"></div>
         <div className="relative z-10 space-y-8 max-w-sm mx-auto w-full">
           <div className="w-20 h-20 bg-white rounded-3xl mx-auto flex items-center justify-center text-4xl shadow-2xl rotate-3 mb-4">🏪</div>
-          <h1 className="text-3xl font-black tracking-tight">{isLoginMode ? 'লগইন' : 'নতুন মেছ'}</h1>
-          <form onSubmit={handleAuth} className="space-y-3">
-            <input type="tel" placeholder="মোবাইল নাম্বার" className="w-full bg-white/10 border-2 border-white/20 rounded-2xl px-6 py-4 text-lg font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" value={tempPhone} onChange={e => setTempPhone(e.target.value)} />
-            <input type="password" placeholder="পাসওয়ার্ড" className="w-full bg-white/10 border-2 border-white/20 rounded-2xl px-6 py-4 text-lg font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" value={tempPassword} onChange={e => setTempPassword(e.target.value)} />
-            <button className="w-full bg-white text-indigo-800 font-black py-4 rounded-2xl text-lg shadow-xl active:scale-95 transition-all">{isLoginMode ? 'প্রবেশ করুন' : 'অ্যাকাউন্ট খুলুন'}</button>
-          </form>
-          <button onClick={() => setIsLoginMode(!isLoginMode)} className="text-indigo-200 font-bold underline decoration-2 underline-offset-4">{isLoginMode ? 'নতুন মেছ? অ্যাকাউন্ট খুলুন' : 'আগের মেছ? লগইন করুন'}</button>
           
-          {/* Developer & Help Line Section */}
+          <div className="flex bg-white/10 p-1 rounded-2xl border border-white/20">
+            <button onClick={() => setIsAdminTab(false)} className={`flex-1 py-3 rounded-xl font-black text-sm transition-all ${!isAdminTab ? 'bg-white text-indigo-900 shadow-xl' : 'text-white'}`}>ইউজার লগিন</button>
+            <button onClick={() => setIsAdminTab(true)} className={`flex-1 py-3 rounded-xl font-black text-sm transition-all ${isAdminTab ? 'bg-white text-indigo-900 shadow-xl' : 'text-white'}`}>এডমিন লগিন</button>
+          </div>
+
+          <h1 className="text-3xl font-black tracking-tight">{isAdminTab ? 'এডমিন লগিন' : (isLoginMode ? 'লগইন' : 'নতুন মেছ')}</h1>
+          
+          <form onSubmit={handleAuth} className="space-y-3">
+            {!isAdminTab && <input type="tel" placeholder="মোবাইল নাম্বার" className="w-full bg-white/10 border-2 border-white/20 rounded-2xl px-6 py-4 text-lg font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" value={tempPhone} onChange={e => setTempPhone(e.target.value)} />}
+            <input type="password" placeholder={isAdminTab ? "এডমিন পাসওয়ার্ড" : "পাসওয়ার্ড"} className="w-full bg-white/10 border-2 border-white/20 rounded-2xl px-6 py-4 text-lg font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" value={tempPassword} onChange={e => setTempPassword(e.target.value)} />
+            <button className="w-full bg-white text-indigo-800 font-black py-4 rounded-2xl text-lg shadow-xl active:scale-95 transition-all">প্রবেশ করুন</button>
+          </form>
+          
+          {!isAdminTab && (
+            <button onClick={() => setIsLoginMode(!isLoginMode)} className="text-indigo-200 font-bold underline decoration-2 underline-offset-4">{isLoginMode ? 'নতুন মেছ? অ্যাকাউন্ট খুলুন' : 'আগের মেছ? লগইন করুন'}</button>
+          )}
+          
           <div className="pt-8 border-t border-white/10 space-y-6">
             <div className="space-y-2">
               <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Developer</p>
@@ -310,106 +384,103 @@ const App: React.FC = () => {
   return (
     <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
       <div className="max-w-md mx-auto pb-24">
-        {activeTab === 'dashboard' && renderDashboard()}
-        
-        {activeTab === 'expenses' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-              <h2 className="text-xl font-black text-center mb-6 text-slate-900">নতুন এন্ট্রি যোগ করুন</h2>
-              <div className="space-y-5">
-                <input type="text" placeholder="খরচের বিবরণ" className="w-full bg-slate-50 border rounded-2xl px-5 py-3 font-bold" value={expenseDesc} onChange={e => setExpenseDesc(e.target.value)} />
-                <input type="number" placeholder="টাকার পরিমাণ" className="w-full bg-slate-50 border rounded-2xl px-5 py-3 font-black text-xl" value={expenseAmount} onChange={e => setExpenseAmount(e.target.value)} />
-                <div className="grid grid-cols-3 gap-2">
-                  <button onClick={() => setExpenseType(ExpenseType.SHARED)} className={`py-3 rounded-xl border-2 font-black text-[10px] ${expenseType === ExpenseType.SHARED ? 'bg-indigo-600 text-white' : 'bg-white text-slate-400'}`}>সবার বাজার</button>
-                  <button onClick={() => setExpenseType(ExpenseType.PERSONAL)} className={`py-3 rounded-xl border-2 font-black text-[10px] ${expenseType === ExpenseType.PERSONAL ? 'bg-rose-600 text-white' : 'bg-white text-slate-400'}`}>ব্যক্তিগত বাকি</button>
-                  <button onClick={() => setExpenseType(ExpenseType.PAYMENT)} className={`py-3 rounded-xl border-2 font-black text-[10px] ${expenseType === ExpenseType.PAYMENT ? 'bg-emerald-600 text-white' : 'bg-white text-slate-400'}`}>টাকা জমা</button>
-                </div>
-                {expenseType !== ExpenseType.SHARED && (
-                  <select className="w-full bg-slate-50 border rounded-2xl px-5 py-3 font-bold" value={targetId} onChange={e => setTargetId(e.target.value)}>
-                    <option value="">মেম্বার সিলেক্ট করুন...</option>
-                    {activeMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                    {leftMembers.length > 0 && <optgroup label="প্রাক্তন মেম্বার">
-                        {leftMembers.map(m => <option key={m.id} value={m.id}>{m.name} (প্রাক্তন)</option>)}
-                    </optgroup>}
-                  </select>
-                )}
-                <button onClick={addExpense} className="w-full bg-indigo-700 text-white py-4 rounded-2xl font-black shadow-lg">সেভ করুন</button>
-              </div>
-            </div>
+        {isAdmin && !userPhone && renderAdminView()}
+        {isAdmin && userPhone && (
+          <div className="mb-6 flex gap-2 animate-in slide-in-from-top-4">
+            <button onClick={() => setUserPhone(null)} className="flex-1 bg-white text-indigo-700 border border-indigo-200 py-3 rounded-2xl font-black text-xs uppercase shadow-sm">ইউজার তালিকায় ফিরে যান</button>
           </div>
         )}
 
-        {activeTab === 'history' && (
-          <div className="space-y-4">
-            <h2 className="text-xl font-black px-2 text-slate-900">লেনদেন খাতা</h2>
-            {expenses.map(exp => (
-              <div key={exp.id} className="bg-white p-4 rounded-2xl border flex justify-between items-center shadow-sm">
-                <div>
-                  <p className="font-black text-slate-800 text-sm">{exp.description}</p>
-                  <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">
-                    {exp.type === ExpenseType.SHARED ? 'সবার বাজার' : members.find(m => m.id === exp.targetMemberId)?.name || 'অজানা'} • {new Date(exp.date).toLocaleDateString('bn-BD')}
-                  </p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className={`font-black ${exp.type === ExpenseType.PAYMENT ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {exp.type === ExpenseType.PAYMENT ? '+' : '-'}{formatCurrency(exp.amount, currencyCode)}
-                  </span>
-                  <button onClick={() => deleteExpense(exp.id)} className="text-slate-300 hover:text-rose-500">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {activeTab === 'summary' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-              <h3 className="font-black text-slate-900 mb-4">কারেন্সি সেটিংস</h3>
-              <select className="w-full bg-slate-50 border rounded-2xl px-5 py-3 font-bold" value={currencyCode} onChange={(e) => {setCurrencyCode(e.target.value); localStorage.setItem(`${APP_PREFIX}global_currency`, e.target.value);}}>
-                <option value="BDT">৳ BDT</option><option value="SAR">SR SAR</option><option value="AED">DH AED</option>
-                <option value="QAR">QR QAR</option><option value="KWD">KD KWD</option><option value="USD">$ USD</option>
-              </select>
-            </div>
-
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-              <h3 className="font-black text-slate-900 mb-4">মেম্বার ম্যানেজমেন্ট</h3>
-              <div className="flex gap-2 mb-6">
-                <input id="member-name-input" type="text" placeholder="মেম্বারের নাম" className="flex-1 bg-slate-50 border rounded-2xl px-5 py-3 font-bold" />
-                <button onClick={addMember} className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black shadow-lg">যোগ</button>
-              </div>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <p className="text-[10px] font-black text-indigo-500 uppercase px-1">চলমান মেম্বার</p>
-                  {activeMembers.map(m => (
-                    <div key={m.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border">
-                      <span className="font-black text-slate-800">{m.name}</span>
-                      <div className="flex gap-2">
-                        <button onClick={() => leaveMember(m.id)} className="text-amber-600 bg-amber-50 px-3 py-2 rounded-xl text-[10px] font-black">মেছ ছেড়েছেন</button>
-                        <button onClick={() => deleteMemberRecord(m.id)} className="text-rose-400 p-2"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
-                      </div>
+        {(userPhone || (!isAdmin && userPhone)) && (
+          <>
+            {activeTab === 'dashboard' && renderDashboard()}
+            
+            {activeTab === 'expenses' && (
+              <div className="space-y-6">
+                <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                  <h2 className="text-xl font-black text-center mb-6 text-slate-900">{isAdmin ? 'ইউজার খরচ (ব্যাবহারকারী হিসেবে)' : 'নতুন এন্ট্রি যোগ করুন'}</h2>
+                  <div className="space-y-5">
+                    <input type="text" placeholder="খরচের বিবরণ" className="w-full bg-slate-50 border rounded-2xl px-5 py-3 font-bold" value={expenseDesc} onChange={e => setExpenseDesc(e.target.value)} disabled={isAdmin} />
+                    <input type="number" placeholder="টাকার পরিমাণ" className="w-full bg-slate-50 border rounded-2xl px-5 py-3 font-black text-xl" value={expenseAmount} onChange={e => setExpenseAmount(e.target.value)} disabled={isAdmin} />
+                    <div className="grid grid-cols-3 gap-2">
+                      <button onClick={() => setExpenseType(ExpenseType.SHARED)} className={`py-3 rounded-xl border-2 font-black text-[10px] ${expenseType === ExpenseType.SHARED ? 'bg-indigo-600 text-white' : 'bg-white text-slate-400'}`}>সবার বাজার</button>
+                      <button onClick={() => setExpenseType(ExpenseType.PERSONAL)} className={`py-3 rounded-xl border-2 font-black text-[10px] ${expenseType === ExpenseType.PERSONAL ? 'bg-rose-600 text-white' : 'bg-white text-slate-400'}`}>ব্যক্তিগত বাকি</button>
+                      <button onClick={() => setExpenseType(ExpenseType.PAYMENT)} className={`py-3 rounded-xl border-2 font-black text-[10px] ${expenseType === ExpenseType.PAYMENT ? 'bg-emerald-600 text-white' : 'bg-white text-slate-400'}`}>টাকা জমা</button>
                     </div>
-                  ))}
-                </div>
-                {leftMembers.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-[10px] font-black text-slate-400 uppercase px-1">প্রাক্তন মেম্বার</p>
-                    {leftMembers.map(m => (
-                      <div key={m.id} className="flex items-center justify-between p-4 bg-slate-100 rounded-2xl border opacity-70">
-                        <span className="font-black text-slate-500">{m.name}</span>
-                        <div className="flex gap-2">
-                          <button onClick={() => rejoinMember(m.id)} className="text-indigo-600 bg-indigo-50 px-3 py-2 rounded-xl text-[10px] font-black">পুনরায় যোগ</button>
-                          <button onClick={() => deleteMemberRecord(m.id)} className="text-rose-300 p-2"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
-                        </div>
-                      </div>
-                    ))}
+                    {expenseType !== ExpenseType.SHARED && (
+                      <select className="w-full bg-slate-50 border rounded-2xl px-5 py-3 font-bold" value={targetId} onChange={e => setTargetId(e.target.value)} disabled={isAdmin}>
+                        <option value="">মেম্বার সিলেক্ট করুন...</option>
+                        {activeMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                        {leftMembers.length > 0 && <optgroup label="প্রাক্তন মেম্বার">
+                            {leftMembers.map(m => <option key={m.id} value={m.id}>{m.name} (প্রাক্তন)</option>)}
+                        </optgroup>}
+                      </select>
+                    )}
+                    <button onClick={addExpense} className={`w-full py-4 rounded-2xl font-black shadow-lg ${isAdmin ? 'bg-slate-300' : 'bg-indigo-700 text-white'}`} disabled={isAdmin}>{isAdmin ? 'এডমিন হিসেবে সেভ করা যাবে না' : 'সেভ করুন'}</button>
                   </div>
-                )}
+                </div>
               </div>
-            </div>
-            <button onClick={handleLogout} className="w-full py-5 rounded-2xl bg-rose-50 text-rose-600 font-black text-xs uppercase border border-rose-100">লগআউট (Logout)</button>
-          </div>
+            )}
+
+            {activeTab === 'history' && (
+              <div className="space-y-4">
+                <h2 className="text-xl font-black px-2 text-slate-900">লেনদেন খাতা</h2>
+                {expenses.map(exp => (
+                  <div key={exp.id} className="bg-white p-4 rounded-2xl border flex justify-between items-center shadow-sm">
+                    <div>
+                      <p className="font-black text-slate-800 text-sm">{exp.description}</p>
+                      <p className="text-[9px] text-slate-400 font-bold uppercase mt-1">
+                        {exp.type === ExpenseType.SHARED ? 'সবার বাজার' : members.find(m => m.id === exp.targetMemberId)?.name || 'অজানা'} • {new Date(exp.date).toLocaleDateString('bn-BD')}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className={`font-black ${exp.type === ExpenseType.PAYMENT ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {exp.type === ExpenseType.PAYMENT ? '+' : '-'}{formatCurrency(exp.amount, currencyCode)}
+                      </span>
+                      <button onClick={() => deleteExpense(exp.id)} className={`text-slate-300 hover:text-rose-500 ${isAdmin ? 'hidden' : ''}`}>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {activeTab === 'summary' && (
+              <div className="space-y-6">
+                <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                  <h3 className="font-black text-slate-900 mb-4">কারেন্সি সেটিংস</h3>
+                  <select className="w-full bg-slate-50 border rounded-2xl px-5 py-3 font-bold" value={currencyCode} onChange={(e) => {setCurrencyCode(e.target.value); localStorage.setItem(`${APP_PREFIX}global_currency`, e.target.value);}} disabled={isAdmin}>
+                    <option value="BDT">৳ BDT</option><option value="SAR">SR SAR</option><option value="AED">DH AED</option>
+                    <option value="QAR">QR QAR</option><option value="KWD">KD KWD</option><option value="USD">$ USD</option>
+                  </select>
+                </div>
+
+                <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                  <h3 className="font-black text-slate-900 mb-4">মেম্বার ম্যানেজমেন্ট</h3>
+                  <div className="flex gap-2 mb-6">
+                    <input id="member-name-input" type="text" placeholder="মেম্বারের নাম" className="flex-1 bg-slate-50 border rounded-2xl px-5 py-3 font-bold" disabled={isAdmin} />
+                    <button onClick={addMember} className={`px-6 py-3 rounded-2xl font-black shadow-lg ${isAdmin ? 'bg-slate-300' : 'bg-indigo-600 text-white'}`} disabled={isAdmin}>যোগ</button>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-black text-indigo-500 uppercase px-1">চলমান মেম্বার</p>
+                      {activeMembers.map(m => (
+                        <div key={m.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border">
+                          <span className="font-black text-slate-800">{m.name}</span>
+                          <div className={`flex gap-2 ${isAdmin ? 'hidden' : ''}`}>
+                            <button onClick={() => leaveMember(m.id)} className="text-amber-600 bg-amber-50 px-3 py-2 rounded-xl text-[10px] font-black">মেছ ছেড়েছেন</button>
+                            <button onClick={() => deleteMemberRecord(m.id)} className="text-rose-400 p-2"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <button onClick={handleLogout} className="w-full py-5 rounded-2xl bg-rose-50 text-rose-600 font-black text-xs uppercase border border-rose-100">লগআউট (Logout)</button>
+              </div>
+            )}
+          </>
         )}
       </div>
 
