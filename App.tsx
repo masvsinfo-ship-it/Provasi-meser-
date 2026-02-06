@@ -6,6 +6,7 @@ import Layout from './components/Layout.tsx';
 import { geminiService } from './services/geminiService.ts';
 
 const APP_PREFIX = 'mess_tracker_v3_';
+const USERS_KEY = 'mess_tracker_auth_users';
 
 const INITIAL_MEMBERS: Member[] = [
   { id: '1', name: 'বিল্লাল', avatar: 'https://picsum.photos/seed/billal/100', joinDate: Date.now() - 86400000 },
@@ -15,7 +16,9 @@ const INITIAL_MEMBERS: Member[] = [
 
 const App: React.FC = () => {
   const [userPhone, setUserPhone] = useState<string | null>(() => localStorage.getItem('logged_in_phone'));
+  const [isLoginMode, setIsLoginMode] = useState(true);
   const [tempPhone, setTempPhone] = useState('');
+  const [tempPassword, setTempPassword] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
@@ -23,6 +26,7 @@ const App: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
+  // Load data when user logs in
   useEffect(() => {
     if (userPhone) {
       const savedMembers = localStorage.getItem(`${APP_PREFIX}${userPhone}_members`);
@@ -34,17 +38,40 @@ const App: React.FC = () => {
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleAuth = (e: React.FormEvent) => {
     e.preventDefault();
-    if (tempPhone.length < 10) {
-      showToast("সঠিক মোবাইল নাম্বার দিন", "error");
+    if (tempPhone.length < 10 || tempPassword.length < 4) {
+      showToast("সঠিক নাম্বার ও পাসওয়ার্ড (৪ অক্ষর) দিন", "error");
       return;
     }
-    localStorage.setItem('logged_in_phone', tempPhone);
-    setUserPhone(tempPhone);
-    showToast("লগইন সফল হয়েছে!");
+
+    const storedUsersRaw = localStorage.getItem(USERS_KEY);
+    const users = storedUsersRaw ? JSON.parse(storedUsersRaw) : {};
+
+    if (isLoginMode) {
+      // Login Logic
+      if (users[tempPhone] && users[tempPhone] === tempPassword) {
+        localStorage.setItem('logged_in_phone', tempPhone);
+        setUserPhone(tempPhone);
+        showToast("লগইন সফল হয়েছে!");
+      } else {
+        showToast("ভুল মোবাইল নাম্বার বা পাসওয়ার্ড", "error");
+      }
+    } else {
+      // Sign Up Logic
+      if (users[tempPhone]) {
+        showToast("এই নাম্বার দিয়ে আগেই সাইন-আপ করা হয়েছে", "error");
+      } else {
+        users[tempPhone] = tempPassword;
+        localStorage.setItem(USERS_KEY, JSON.stringify(users));
+        localStorage.setItem('logged_in_phone', tempPhone);
+        setUserPhone(tempPhone);
+        showToast("অ্যাকাউন্ট তৈরি সফল হয়েছে!");
+      }
+    }
   };
 
   const handleLogout = () => {
@@ -52,10 +79,12 @@ const App: React.FC = () => {
       localStorage.removeItem('logged_in_phone');
       setUserPhone(null);
       setTempPhone('');
+      setTempPassword('');
       setActiveTab('dashboard');
     }
   };
 
+  // Auto-save logic
   useEffect(() => {
     if (userPhone && (members.length > 0 || expenses.length > 0)) {
       setSaveStatus('saving');
@@ -169,27 +198,57 @@ const App: React.FC = () => {
   if (!userPhone) {
     return (
       <div className="min-h-screen bg-indigo-700 flex flex-col justify-center p-6 text-white max-w-md mx-auto shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32"></div>
+        {/* Animated background circles */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32 blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-900/50 rounded-full translate-y-32 -translate-x-32 blur-3xl"></div>
+        
         <div className="relative z-10 text-center space-y-8 animate-in fade-in zoom-in duration-700">
           <div className="w-24 h-24 bg-white rounded-3xl mx-auto flex items-center justify-center text-5xl shadow-2xl rotate-3">🥘</div>
           <div className="space-y-2">
-            <h1 className="text-3xl font-black">প্রভাসিদের মেছ</h1>
-            <p className="text-indigo-100 font-medium">মোবাইল নাম্বার দিয়ে লগইন করুন</p>
+            <h1 className="text-3xl font-black">{isLoginMode ? 'ফিরে আসার জন্য স্বাগতম' : 'নতুন মেছ অ্যাকাউন্ট'}</h1>
+            <p className="text-indigo-100 font-medium">নিরাপদ হিসাব রাখতে লগইন করুন</p>
           </div>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <input 
-              type="tel" 
-              placeholder="01xxxxxxxxx" 
-              className="w-full bg-white/10 border-2 border-white/20 rounded-2xl px-6 py-5 text-xl font-bold placeholder:text-white/40 focus:bg-white focus:text-indigo-900 outline-none transition-all text-center"
-              value={tempPhone}
-              onChange={(e) => setTempPhone(e.target.value)}
-            />
+          
+          <form onSubmit={handleAuth} className="space-y-4">
+            <div className="space-y-3">
+              <input 
+                type="tel" 
+                placeholder="মোবাইল নাম্বার (১১ ডিজিট)" 
+                className="w-full bg-white/10 border-2 border-white/20 rounded-2xl px-6 py-4 text-lg font-bold placeholder:text-white/40 focus:bg-white focus:text-indigo-900 outline-none transition-all text-center"
+                value={tempPhone}
+                onChange={(e) => setTempPhone(e.target.value)}
+              />
+              <input 
+                type="password" 
+                placeholder="গোপন পাসওয়ার্ড" 
+                className="w-full bg-white/10 border-2 border-white/20 rounded-2xl px-6 py-4 text-lg font-bold placeholder:text-white/40 focus:bg-white focus:text-indigo-900 outline-none transition-all text-center"
+                value={tempPassword}
+                onChange={(e) => setTempPassword(e.target.value)}
+              />
+            </div>
+            
             <button className="w-full bg-white text-indigo-700 font-black py-5 rounded-2xl text-xl shadow-xl active:scale-95 transition-all">
-              শুরু করুন
+              {isLoginMode ? 'লগইন করুন' : 'সাইন-আপ সম্পন্ন করুন'}
             </button>
           </form>
+
+          <div className="pt-4">
+            <button 
+              onClick={() => setIsLoginMode(!isLoginMode)}
+              className="text-indigo-100 font-bold hover:text-white underline underline-offset-4"
+            >
+              {isLoginMode ? 'নতুন অ্যাকাউন্ট খুলতে চান? সাইন-আপ করুন' : 'আগে থেকেই অ্যাকাউন্ট আছে? লগইন করুন'}
+            </button>
+          </div>
+          
           <p className="text-[10px] text-white/50 uppercase tracking-widest font-black">Design: বিল্লাল জামালপুর</p>
         </div>
+
+        {toast && (
+          <div className={`fixed bottom-10 left-6 right-6 z-[100] px-6 py-4 rounded-2xl shadow-2xl text-center font-black animate-bounce ${toast.type === 'error' ? 'bg-rose-500' : 'bg-emerald-500'} text-white`}>
+            {toast.message}
+          </div>
+        )}
       </div>
     );
   }
@@ -199,7 +258,7 @@ const App: React.FC = () => {
       <div className="flex justify-between items-center px-2">
         <div>
           <h2 className="text-slate-900 font-black text-lg">মেস স্ট্যাটাস</h2>
-          <p className="text-[10px] font-bold text-slate-400">ID: {userPhone}</p>
+          <p className="text-[10px] font-bold text-slate-400">User: {userPhone}</p>
         </div>
         <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm">
           <div className={`w-2 h-2 rounded-full ${saveStatus === 'saved' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-amber-500 animate-pulse'}`}></div>
