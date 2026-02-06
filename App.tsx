@@ -304,7 +304,13 @@ const App: React.FC = () => {
           {summary.memberBalances.map((mb) => (
             <div key={mb.member.id} className={`bg-white rounded-2xl p-4 shadow-sm border ${mb.member.leaveDate ? 'border-slate-200 opacity-75' : 'border-slate-100'} space-y-3 relative overflow-hidden`}>
               {mb.member.leaveDate && (
-                <div className="absolute top-0 right-0 bg-slate-200 text-slate-600 text-[7px] font-black px-2 py-0.5 rounded-bl-lg uppercase">প্রাক্তন</div>
+                <div className="absolute top-0 right-0 bg-slate-200 text-slate-600 text-[7px] font-black px-2 py-0.5 rounded-bl-lg uppercase">নিষ্ক্রিয়</div>
+              )}
+              {/* Debt Warning Pulse Badge */}
+              {!mb.member.leaveDate && mb.netBalance < -300 && (
+                <div className="absolute top-0 left-0 bg-rose-600 text-white text-[7px] font-black px-2 py-0.5 rounded-br-lg uppercase animate-pulse z-10">
+                  ⚠️ ৩০০+ বকেয়া
+                </div>
               )}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
