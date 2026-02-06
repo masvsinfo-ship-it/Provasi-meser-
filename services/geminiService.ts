@@ -1,21 +1,16 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import { MessSummary } from "../types.ts";
 
 export class GeminiService {
-  private ai: GoogleGenAI | null = null;
-
-  constructor() {
-    const apiKey = typeof process !== 'undefined' ? process.env.API_KEY : undefined;
-    if (apiKey) {
-      this.ai = new GoogleGenAI({ apiKey });
-    }
-  }
-
+  /**
+   * Generates a smart insight about the mess expenses using Gemini API.
+   * Following the latest SDK guidelines for Google GenAI.
+   */
   async getSmartInsight(summary: MessSummary) {
-    if (!this.ai) {
-      return "AI পরামর্শ সচল করতে Vercel Dashboard-এ গিয়ে Environment Variable হিসেবে 'API_KEY' যুক্ত করুন। (বিল্লাল জামালপুর)";
-    }
+    // Guidelines: Always initialize with process.env.API_KEY.
+    // Assume this variable is pre-configured and accessible.
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
     const prompt = `
       Analyze this Mess (Shared Apartment) credit status and give a VERY FRIENDLY, warm, and helpful advice in BENGALI.
@@ -31,13 +26,16 @@ export class GeminiService {
     `;
 
     try {
-      const response = await this.ai.models.generateContent({
+      // Guidelines: Use ai.models.generateContent with model and prompt.
+      const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: prompt,
         config: {
           thinkingConfig: { thinkingBudget: 0 }
         }
       });
+      
+      // Guidelines: Access the text directly from the response object.
       return response.text || "দোকানে বাকি হিসাব একদম ঠিকঠাক আছে। সবাই মিলেমিশে থাকুন! 😊";
     } catch (error) {
       console.error("Gemini Error:", error);

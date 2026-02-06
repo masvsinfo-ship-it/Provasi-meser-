@@ -10,7 +10,11 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
     .filter(e => e.type === ExpenseType.PERSONAL)
     .reduce((sum, e) => sum + e.amount, 0);
 
-  const grandTotalDebt = totalShared + totalPersonal;
+  const totalPayments = expenses
+    .filter(e => e.type === ExpenseType.PAYMENT)
+    .reduce((sum, e) => sum + e.amount, 0);
+
+  const grandTotalDebt = (totalShared + totalPersonal) - totalPayments;
 
   const balancesMap = new Map<string, MemberBalance>();
   members.forEach(m => {
@@ -24,7 +28,7 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
     });
   });
 
-  // Calculate costs
+  // Calculate costs and payments
   expenses.forEach(exp => {
     if (exp.type === ExpenseType.SHARED) {
       const activeAtTime = members.filter(m => 
@@ -44,6 +48,11 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
       if (target) {
         target.personalTotal += exp.amount;
       }
+    } else if (exp.type === ExpenseType.PAYMENT && exp.targetMemberId) {
+      const target = balancesMap.get(exp.targetMemberId);
+      if (target) {
+        target.paid += exp.amount;
+      }
     }
   });
 
@@ -53,7 +62,7 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
     return {
       ...b,
       totalCost,
-      netBalance: -totalCost // Everything is debt to shop
+      netBalance: b.paid - totalCost
     };
   });
 
@@ -63,6 +72,7 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
   return {
     totalSharedExpense: totalShared,
     totalPersonalExpense: totalPersonal,
+    totalPayments: totalPayments,
     grandTotalDebt,
     averagePerPerson: average,
     memberBalances: memberBalances
