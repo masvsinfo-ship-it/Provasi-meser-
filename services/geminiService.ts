@@ -3,25 +3,31 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { MessSummary } from "../types";
 
 export class GeminiService {
-  private ai: GoogleGenAI;
+  private ai: GoogleGenAI | null = null;
 
   constructor() {
-    this.ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    const apiKey = process.env.API_KEY;
+    if (apiKey) {
+      this.ai = new GoogleGenAI({ apiKey });
+    }
   }
 
   async getSmartInsight(summary: MessSummary) {
-    if (!process.env.API_KEY) return "AI Insights unavailable.";
+    if (!this.ai) {
+      return "AI পরামর্শ পেতে Vercel সেটিংস-এ API Key সেট করুন। (বিল্লাল জামালপুর)";
+    }
 
     const prompt = `
-      Analyze this Mess (Shared Apartment) financial status and give a friendly, 1-2 sentence advice in BENGALI.
+      Analyze this Mess (Shared Apartment) financial status and give a VERY FRIENDLY, warm, and helpful advice in BENGALI.
       The mess follows a "Total Bill" system (No advance pool).
       Total Mess Market Expense: SR ${summary.totalSharedExpense.toFixed(2)}
       Each member's shared share: SR ${summary.averagePerPerson.toFixed(2)}
       
       Member Total Costs (Shared Share + Personal items):
-      ${summary.memberBalances.map(b => `- ${b.member.name}: Total Cost SR ${b.netBalance.toFixed(2)} (Personal: SR ${b.personalTotal.toFixed(2)})`).join('\n')}
+      ${summary.memberBalances.map(b => `- ${b.member.name}: Total SR ${b.netBalance.toFixed(2)} (Personal was SR ${b.personalTotal.toFixed(2)})`).join('\n')}
       
-      Advice should be in Bengali. Mention if personal costs are high or general mess advice.
+      Advice should be in Bengali. Use emojis. Sound like a helpful friend. Mention if someone is spending too much on personal things or if the mess budget is doing great.
+      Keep it 1-2 sentences.
     `;
 
     try {
@@ -32,10 +38,10 @@ export class GeminiService {
           thinkingConfig: { thinkingBudget: 0 }
         }
       });
-      return response.text || "হিসাব ঠিক আছে।";
+      return response.text || "আপনার মেছের হিসাব একদম ঠিকঠাক আছে। ভালো থাকুন! 😊";
     } catch (error) {
       console.error("Gemini Error:", error);
-      return "হিসাব চেক করা যাচ্ছে না।";
+      return "হিসাব ঠিক আছে, তবে AI বর্তমানে ব্যস্ত। পরে ট্রাই করুন। 👍";
     }
   }
 }
