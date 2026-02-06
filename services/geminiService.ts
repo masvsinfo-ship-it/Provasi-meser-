@@ -1,29 +1,26 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import { MessSummary } from "../types.ts";
 
 export class GeminiService {
-  private ai: GoogleGenAI | null = null;
-
-  constructor() {
-    const apiKey = typeof process !== 'undefined' ? process.env.API_KEY : undefined;
-    if (apiKey) {
-      this.ai = new GoogleGenAI({ apiKey });
+  /**
+   * Generates smart financial insights using Gemini.
+   */
+  async getSmartInsight(summary: MessSummary, currencyCode: string = 'SAR') {
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      return "AI পরামর্শ সচল করতে Vercel Dashboard-এ গিয়ে Environment Variable হিসেবে 'API_KEY' যুক্ত করুন।";
     }
-  }
 
-  async getSmartInsight(summary: MessSummary) {
-    if (!this.ai) {
-      return "AI পরামর্শ সচল করতে Vercel Dashboard-এ গিয়ে Environment Variable হিসেবে 'API_KEY' যুক্ত করুন। (বিল্লাল জামালপুর)";
-    }
+    const ai = new GoogleGenAI({ apiKey });
 
     const prompt = `
       Analyze this Mess (Shared Apartment) credit status and give a VERY FRIENDLY, warm, and helpful advice in BENGALI.
       The mess follows a 100% "Credit at Shop" system. No member pays upfront.
-      Total Debt to Shop (Dokaner Baki): SR ${summary.totalSharedExpense.toFixed(2)}
+      Total Debt to Shop (Dokaner Baki): ${currencyCode} ${summary.totalSharedExpense.toFixed(2)}
       
       Member Debt Breakdown (What they owe for Shared + Personal items):
-      ${summary.memberBalances.map(b => `- ${b.member.name}: Total Debt SR ${Math.abs(b.netBalance).toFixed(2)} (Shared Share: SR ${b.sharedShare.toFixed(2)}, Personal: SR ${b.personalTotal.toFixed(2)})`).join('\n')}
+      ${summary.memberBalances.map(b => `- ${b.member.name}: Total Debt ${currencyCode} ${Math.abs(b.netBalance).toFixed(2)} (Shared Share: ${currencyCode} ${b.sharedShare.toFixed(2)}, Personal: ${currencyCode} ${b.personalTotal.toFixed(2)})`).join('\n')}
       
       Advice should be in Bengali. Use emojis. Sound like a helpful friend. 
       Specifically mention if someone's "Personal Debt" is significantly high compared to others.
@@ -31,7 +28,7 @@ export class GeminiService {
     `;
 
     try {
-      const response = await this.ai.models.generateContent({
+      const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: prompt,
         config: {

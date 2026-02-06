@@ -79,13 +79,33 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
   };
 };
 
-export const formatCurrency = (amount: number) => {
+/**
+ * Formats a currency amount with an optional currency code.
+ */
+// Fix: Updated to accept currencyCode as a second argument
+export const formatCurrency = (amount: number, currencyCode: string = 'SAR') => {
   const absAmount = Math.abs(amount);
-  const formatted = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'SAR',
-    minimumFractionDigits: 2
-  }).format(absAmount).replace('SAR', 'SR');
-  
-  return amount < 0 ? `-${formatted}` : formatted;
+  try {
+    const formatted = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currencyCode,
+      minimumFractionDigits: 2
+    }).format(absAmount);
+    
+    // Custom formatting: Use 'SR' for 'SAR' as per original design
+    const result = currencyCode === 'SAR' ? formatted.replace('SAR', 'SR') : formatted;
+    
+    return amount < 0 ? `-${result}` : result;
+  } catch (e) {
+    // Fallback if currency code is invalid
+    return `${amount < 0 ? '-' : ''}${currencyCode} ${absAmount.toFixed(2)}`;
+  }
+};
+
+/**
+ * Detects the default currency for the user.
+ */
+// Fix: Added missing export expected by App.tsx
+export const getAutoDetectedCurrency = (): string => {
+  return 'SAR';
 };

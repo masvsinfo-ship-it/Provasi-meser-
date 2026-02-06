@@ -25,7 +25,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
           </svg>
           প্রভাসিদের মেছের হিসাব
         </h1>
-        <p className="text-indigo-100 text-sm mt-1 font-medium">বিল্লাল জামালপুর</p>
+        <p className="text-indigo-100 text-sm mt-1 font-medium">প্রবাসী মেছ ম্যানেজমেন্ট</p>
       </header>
 
       {/* Main Content */}
