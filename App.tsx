@@ -38,7 +38,6 @@ const App: React.FC = () => {
 
   const saveToDisk = (updatedMembers: Member[], updatedExpenses: Expense[]) => {
     if (userPhone) {
-      // Both Admin and User can now save to disk
       localStorage.setItem(`${APP_PREFIX}${userPhone}_members`, JSON.stringify(updatedMembers));
       localStorage.setItem(`${APP_PREFIX}${userPhone}_expenses`, JSON.stringify(updatedExpenses));
     }
@@ -56,7 +55,7 @@ const App: React.FC = () => {
       if (tempPassword === '8795') {
         localStorage.setItem('is_admin', 'true');
         setIsAdmin(true);
-        setUserPhone(null); // Ensure we start at the user list
+        setUserPhone(null);
         showToast("এডমিন লগিন সফল!");
       } else {
         showToast("ভুল এডমিন পাসওয়ার্ড!", "error");
@@ -107,6 +106,21 @@ const App: React.FC = () => {
       setTempPhone('');
       setActiveTab('dashboard');
       showToast("সফলভাবে লগআউট হয়েছে");
+    }
+  };
+
+  const deleteUser = (phoneToDelete: string) => {
+    if (window.confirm(`${phoneToDelete} এর সকল ডাটা চিরতরে মুছে ফেলতে চান?`)) {
+      const storedUsersRaw = localStorage.getItem(USERS_KEY);
+      if (storedUsersRaw) {
+        const users = JSON.parse(storedUsersRaw);
+        delete users[phoneToDelete];
+        localStorage.setItem(USERS_KEY, JSON.stringify(users));
+        localStorage.removeItem(`${APP_PREFIX}${phoneToDelete}_members`);
+        localStorage.removeItem(`${APP_PREFIX}${phoneToDelete}_expenses`);
+        if (userPhone === phoneToDelete) setUserPhone(null);
+        showToast(`${phoneToDelete} ডিলিট করা হয়েছে`, 'error');
+      }
     }
   };
 
@@ -226,24 +240,28 @@ const App: React.FC = () => {
         <p className="text-[10px] text-slate-500 font-bold mb-4 uppercase tracking-widest">ইউজার লিস্ট (মোবাইল ও পাসওয়ার্ড)</p>
         <div className="space-y-2">
           {getAllUsersData().map(user => (
-            <button 
+            <div 
               key={user.phone} 
-              onClick={() => setUserPhone(user.phone)}
-              className={`w-full text-left p-3 rounded-xl border transition-all flex justify-between items-center group ${userPhone === user.phone ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-slate-50 hover:bg-slate-100 text-slate-700'}`}
+              className={`w-full p-3 rounded-xl border transition-all flex justify-between items-center ${userPhone === user.phone ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-slate-50 text-slate-700'}`}
             >
-              <div className="flex-1">
+              <div className="flex-1 cursor-pointer" onClick={() => setUserPhone(user.phone)}>
                 <p className="font-black text-[13px]">{user.phone}</p>
                 <p className={`text-[10px] ${userPhone === user.phone ? 'text-indigo-200' : 'text-slate-400'} font-bold`}>Pass: {user.password}</p>
               </div>
-              <svg className={`w-4 h-4 transition-transform group-hover:translate-x-1 ${userPhone === user.phone ? 'text-white' : 'text-slate-300'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
-            </button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => deleteUser(user.phone)} className={`p-2 rounded-lg hover:bg-rose-500/20 transition-colors ${userPhone === user.phone ? 'text-rose-200' : 'text-rose-400'}`}>
+                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </button>
+                <svg onClick={() => setUserPhone(user.phone)} className={`w-4 h-4 cursor-pointer transition-transform group-hover:translate-x-1 ${userPhone === user.phone ? 'text-white' : 'text-slate-300'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
+              </div>
+            </div>
           ))}
           {getAllUsersData().length === 0 && <p className="text-center py-10 text-slate-300 font-bold">কোনো ইউজার নেই।</p>}
         </div>
       </div>
       
       {!userPhone && (
-        <button onClick={handleLogout} className="w-full py-4 rounded-xl bg-rose-600 text-white font-black text-[11px] uppercase shadow-lg active:scale-95 transition-all">এডমিন লগআউট (Exit Admin)</button>
+        <button onClick={handleLogout} className="w-full py-4 rounded-xl bg-rose-600 text-white font-black text-[11px] uppercase shadow-lg active:scale-95 transition-all">এডমিন লগআউট (Admin Exit)</button>
       )}
     </div>
   );
@@ -466,7 +484,9 @@ const App: React.FC = () => {
                   </div>
                 </div>
                 
-                <button onClick={handleLogout} className="w-full py-4 rounded-xl bg-rose-50 text-rose-600 font-black text-[11px] uppercase border border-rose-100 active:bg-rose-100 transition-colors shadow-sm">লগআউট (Logout)</button>
+                <button onClick={handleLogout} className="w-full py-4 rounded-xl bg-rose-50 text-rose-600 font-black text-[11px] uppercase border border-rose-100 active:bg-rose-100 transition-colors shadow-sm">
+                  লগআউট ({userPhone})
+                </button>
               </div>
             )}
           </>
