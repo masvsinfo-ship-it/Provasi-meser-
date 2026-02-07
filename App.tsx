@@ -176,6 +176,15 @@ const App: React.FC = () => {
     }
   };
 
+  const reactivateMember = (id: string) => {
+    if (window.confirm("এই মেম্বারকে কি আবার সক্রিয় করতে চান?")) {
+      const updated = members.map(m => m.id === id ? { ...m, leaveDate: undefined } : m);
+      setMembers(updated);
+      saveToDisk(updated, expenses);
+      showToast("মেম্বার সক্রিয় করা হয়েছে", "success");
+    }
+  };
+
   const [expenseDesc, setExpenseDesc] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
   const [expenseType, setExpenseType] = useState<ExpenseType>(ExpenseType.SHARED);
@@ -220,6 +229,7 @@ const App: React.FC = () => {
   };
 
   const activeMembers = members.filter(m => !m.leaveDate);
+  const inactiveMembers = members.filter(m => !!m.leaveDate);
 
   const getAllUsersData = () => {
     const storedUsersRaw = localStorage.getItem(USERS_KEY);
@@ -490,6 +500,21 @@ const App: React.FC = () => {
                         </div>
                       ))}
                     </div>
+
+                    {inactiveMembers.length > 0 && (
+                      <div className="space-y-2 pt-4 border-t border-slate-100 mt-4">
+                        <p className="text-[9px] font-black text-rose-500 uppercase px-1">নিষ্ক্রিয় মেম্বার</p>
+                        {inactiveMembers.map(m => (
+                          <div key={m.id} className="flex items-center justify-between p-3 bg-slate-100 rounded-xl border border-slate-200 opacity-70">
+                            <span className="font-black text-slate-500 text-[12px] line-through">{m.name}</span>
+                            <div className="flex gap-1.5">
+                              <button onClick={() => reactivateMember(m.id)} className="text-indigo-600 bg-indigo-50 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase">সক্রিয় করুন</button>
+                              <button onClick={() => deleteMemberRecord(m.id)} className="text-rose-400 p-1.5 hover:bg-rose-50 rounded-lg"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
                 
