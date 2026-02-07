@@ -272,6 +272,14 @@ const App: React.FC = () => {
     }
   };
 
+  const clearAllExpenses = () => {
+    if (window.confirm("আপনি কি নিশ্চিতভাবে সকল লেনদেন মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা যাবে না।")) {
+      setExpenses([]);
+      saveToDisk(members, []);
+      showToast("সকল লেনদেন মুছে ফেলা হয়েছে", "warning");
+    }
+  };
+
   const activeMembers = members.filter(m => !m.leaveDate);
   const inactiveMembers = members.filter(m => !!m.leaveDate);
 
@@ -510,7 +518,17 @@ const App: React.FC = () => {
 
             {activeTab === 'history' && (
               <div className="space-y-3">
-                <h2 className="text-lg font-black px-1 text-slate-900">লেনদেন খাতা</h2>
+                <div className="flex justify-between items-center px-1">
+                  <h2 className="text-lg font-black text-slate-900">লেনদেন খাতা</h2>
+                  {expenses.length > 0 && (
+                    <button 
+                      onClick={clearAllExpenses}
+                      className="text-[10px] font-black uppercase text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100 active:scale-95 transition-all"
+                    >
+                      সব মুছুন
+                    </button>
+                  )}
+                </div>
                 {expenses.map(exp => (
                   <div key={exp.id} className="bg-white p-3 rounded-xl border flex justify-between items-center shadow-sm hover:shadow-md transition-shadow">
                     <div>
