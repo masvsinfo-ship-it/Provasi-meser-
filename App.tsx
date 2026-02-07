@@ -127,7 +127,7 @@ const App: React.FC = () => {
         setDeferredPrompt(null);
       }
     } else {
-      alert("আপনার ব্রাউজারের থ্রি-ডট (Menu) মেনু থেকে 'Install App' বা 'Add to Home Screen' ক্লিক করুন।");
+      alert("আপনার ব্রাউজারের মেনু থেকে 'Install App' বা 'Add to Home Screen' এ ক্লিক করে মেম্বারদের জন্য অ্যাপটি ইনস্টল করুন।");
     }
   };
 
@@ -269,7 +269,7 @@ const App: React.FC = () => {
         <h2 className="text-lg font-black text-slate-900 mb-3 flex items-center gap-2">
           <span className="text-xl">🛠️</span> এডমিন কন্ট্রোল প্যানেল
         </h2>
-        <p className="text-[10px] text-slate-500 font-bold mb-4 uppercase tracking-widest">ইউজার লিস্ট (মোবাইল ও পাসওয়ার্ড)</p>
+        <p className="text-[10px] text-slate-500 font-bold mb-4 uppercase tracking-widest">ইউজার লিস্ট (মোাবাইল ও পাসওয়ার্ড)</p>
         <div className="space-y-2">
           {getAllUsersData().map(user => (
             <div 
@@ -383,7 +383,7 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-indigo-900 flex flex-col justify-center p-6 text-white text-center relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -translate-y-40 translate-x-40 blur-3xl"></div>
-        <div className="relative z-10 space-y-5 max-w-sm mx-auto w-full">
+        <div className="relative z-10 space-y-5 max-w-sm mx-auto w-full py-8">
           <h2 className="text-xl font-black tracking-tight mb-2">ব্যাচেলর দের মেছের হিসাব</h2>
           
           <div className="w-16 h-16 bg-white rounded-2xl mx-auto flex items-center justify-center text-3xl shadow-2xl rotate-3 mb-2">🏪</div>
@@ -413,27 +413,28 @@ const App: React.FC = () => {
               <a href="https://fb.com/billal8795" target="_blank" rel="noopener noreferrer" className="bg-white/10 p-3 rounded-xl border border-white/10 hover:bg-white/20 transition-all"><svg className="w-5 h-5 fill-white" viewBox="0 0 24 24"><path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z"/></svg></a>
               <a href="https://wa.me/8801735308795" target="_blank" rel="noopener noreferrer" className="bg-white/10 p-3 rounded-xl border border-white/10 hover:bg-white/20 transition-all"><svg className="w-5 h-5 fill-white" viewBox="0 0 448 512"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.7 17.8 69.4 27.2 106.2 27.2 122.4 0 222-99.6 222-222 0-59.3-23-115.1-65-117.1zM223.9 445.3c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 365.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.7-186.6 184.7zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-5.5-2.8-23.2-8.5-44.2-27.2-16.4-14.6-27.4-32.7-30.6-38.2-3.2-5.6-.3-8.6 2.4-11.3 2.5-2.4 5.5-6.5 8.3-9.8 2.8-3.2 3.7-5.5 5.5-9.3 1.9-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 13.2 5.7 23.5 9.2 31.6 11.8 13.3 4.2 25.4 3.6 35 2.2 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/></svg></a>
             </div>
-            
-            {/* Download App Section */}
-            <div className="mt-8 flex flex-col items-center gap-3">
-              <button 
-                onClick={handleInstallApp}
-                className="group flex items-center gap-3 bg-white/5 border border-white/20 hover:bg-white/10 transition-all px-6 py-3 rounded-2xl shadow-lg active:scale-95"
-              >
-                <div className="bg-emerald-500 p-2 rounded-lg">
-                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M17.523 15.3414L19.5441 18.8142C19.7431 19.1561 19.626 19.5932 19.2825 19.7922C18.939 19.9912 18.502 19.8741 18.303 19.5306L16.2415 15.9922C15.0001 16.634 13.5653 17 12 17C10.4347 17 9 16.634 7.7585 15.9922L5.69697 19.5306C5.498 19.8741 5.06094 19.9912 4.71746 19.7922C4.37397 19.5932 4.25688 19.1561 4.45591 18.8142L6.47697 15.3414C4.10319 13.8863 2.5 11.3323 2.5 8.39999C2.5 8.08244 2.51863 7.76922 2.55469 7.46143H21.4453C21.4814 7.76922 21.5 8.08244 21.5 8.39999C21.5 11.3323 19.8968 13.8863 17.523 15.3414ZM7 11.5C7.55228 11.5 8 11.0523 8 10.5C8 9.94772 7.55228 9.5 7 9.5C6.44772 9.5 6 9.94772 6 10.5C6 11.0523 6.44772 11.5 7 11.5ZM17 11.5C17.5523 11.5 18 11.0523 18 10.5C18 9.94772 17.5523 9.5 17 9.5C16.4477 9.5 16 9.94772 16 10.5C16 11.0523 16.4477 11.5 17 11.5ZM15.5 3.5C15.5 3.5 15.5 3.5 15.5 3.5C15.5 3.5 15.5 3.5 15.5 3.5ZM15.8285 2.17157L17.2427 0.757359C17.5356 0.464466 18.0104 0.464466 18.3033 0.757359C18.5962 1.05025 18.5962 1.52513 18.3033 1.81802L17.1517 2.9696C18.3562 3.90595 19.3412 5.09337 20.0381 6.46143H3.96191C4.65882 5.09337 5.64379 3.90595 6.84831 2.9696L5.6967 1.81802C5.40381 1.52513 5.40381 1.05025 5.6967 0.757359C5.98959 0.464466 6.46447 0.464466 6.75736 0.757359L8.17157 2.17157C9.3375 1.41113 10.6385 1 12 1C13.3615 1 14.6625 1.41113 15.8285 2.17157Z"/>
-                  </svg>
-                </div>
-                <div className="text-left">
-                  <p className="text-[11px] font-black uppercase text-emerald-400 leading-none mb-1">এন্ড্রয়েড অ্যাপ</p>
-                  <p className="text-[13px] font-black text-white leading-none">ডাউনলোড করুন</p>
-                </div>
-              </button>
-              <p className="text-[9px] text-white/30 font-bold max-w-[180px] leading-tight">মেছ ট্র্যাকার এখন আপনার ফোনে অ্যাপ হিসেবে ব্যবহার করতে পারবেন।</p>
-            </div>
+          </div>
+
+          {/* Download App Section at the very bottom */}
+          <div className="pt-8 flex flex-col items-center gap-3">
+            <button 
+              onClick={handleInstallApp}
+              className="group flex items-center gap-4 bg-indigo-600 border border-white/20 hover:bg-indigo-500 transition-all px-8 py-3 rounded-2xl shadow-xl active:scale-95"
+            >
+              <div className="bg-white/10 p-2.5 rounded-xl group-hover:bg-white/20 transition-colors">
+                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M17.523 15.3414L19.5441 18.8142C19.7431 19.1561 19.626 19.5932 19.2825 19.7922C18.939 19.9912 18.502 19.8741 18.303 19.5306L16.2415 15.9922C15.0001 16.634 13.5653 17 12 17C10.4347 17 9 16.634 7.7585 15.9922L5.69697 19.5306C5.498 19.8741 5.06094 19.9912 4.71746 19.7922C4.37397 19.5932 4.25688 19.1561 4.45591 18.8142L6.47697 15.3414C4.10319 13.8863 2.5 11.3323 2.5 8.39999C2.5 8.08244 2.51863 7.76922 2.55469 7.46143H21.4453C21.4814 7.76922 21.5 8.08244 21.5 8.39999C21.5 11.3323 19.8968 13.8863 17.523 15.3414ZM7 11.5C7.55228 11.5 8 11.0523 8 10.5C8 9.94772 7.55228 9.5 7 9.5C6.44772 9.5 6 9.94772 6 10.5C6 11.0523 6.44772 11.5 7 11.5ZM17 11.5C17.5523 11.5 18 11.0523 18 10.5C18 9.94772 17.5523 9.5 17 9.5C16.4477 9.5 16 9.94772 16 10.5C16 11.0523 16.4477 11.5 17 11.5ZM15.5 3.5C15.5 3.5 15.5 3.5 15.5 3.5C15.5 3.5 15.5 3.5 15.5 3.5ZM15.8285 2.17157L17.2427 0.757359C17.5356 0.464466 18.0104 0.464466 18.3033 0.757359C18.5962 1.05025 18.5962 1.52513 18.3033 1.81802L17.1517 2.9696C18.3562 3.90595 19.3412 5.09337 20.0381 6.46143H3.96191C4.65882 5.09337 5.64379 3.90595 6.84831 2.9696L5.6967 1.81802C5.40381 1.52513 5.40381 1.05025 5.6967 0.757359C5.98959 0.464466 6.46447 0.464466 6.75736 0.757359L8.17157 2.17157C9.3375 1.41113 10.6385 1 12 1C13.3615 1 14.6625 1.41113 15.8285 2.17157Z"/>
+                </svg>
+              </div>
+              <div className="text-left border-l border-white/20 pl-4">
+                <p className="text-[10px] font-black uppercase text-indigo-200 leading-none mb-1">এন্ড্রয়েড অ্যাপ</p>
+                <p className="text-[14px] font-black text-white leading-none">ডাউনলোড করুন</p>
+              </div>
+            </button>
+            <p className="text-[10px] text-indigo-300/60 font-medium max-w-[200px] leading-tight mt-1">এই ওয়েবপেজটি আপনার মোবাইলে অ্যান্ড্রয়েড অ্যাপ হিসেবে ইনস্টল দিন।</p>
           </div>
         </div>
+        
         {toast && (
           <div className="fixed bottom-10 left-6 right-6 z-50 p-4 rounded-xl text-center font-bold text-sm bg-rose-500 shadow-2xl animate-in slide-in-from-bottom-4">
             {toast.message}
