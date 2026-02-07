@@ -5,14 +5,7 @@ export enum ExpenseType {
   PAYMENT = 'PAYMENT'
 }
 
-export interface Member {
-  id: string;
-  name: string;
-  avatar: string;
-  joinDate: number;
-  leaveDate?: number;
-}
-
+// Added the missing Expense interface
 export interface Expense {
   id: string;
   description: string;
@@ -21,6 +14,16 @@ export interface Expense {
   payerId: string;
   targetMemberId?: string;
   date: number;
+}
+
+export interface Member {
+  id: string;
+  name: string;
+  avatar: string;
+  joinDate: number;
+  leaveDate?: number;
+  // Tracks multiple join/leave sessions
+  periods?: Array<{ join: number; leave?: number }>;
 }
 
 export interface MemberBalance {

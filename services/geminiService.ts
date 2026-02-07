@@ -7,12 +7,8 @@ export class GeminiService {
    * Generates smart financial insights using Gemini.
    */
   async getSmartInsight(summary: MessSummary, currencyCode: string = 'SAR') {
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-      return "AI পরামর্শ সচল করতে Vercel Dashboard-এ গিয়ে Environment Variable হিসেবে 'API_KEY' যুক্ত করুন।";
-    }
-
-    const ai = new GoogleGenAI({ apiKey });
+    // Initializing with process.env.API_KEY directly as per guidelines.
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     const prompt = `
       Analyze this Mess (Shared Apartment) credit status and give a VERY FRIENDLY, warm, and helpful advice in BENGALI.
@@ -35,6 +31,7 @@ export class GeminiService {
           thinkingConfig: { thinkingBudget: 0 }
         }
       });
+      // Accessing response.text property directly as per latest SDK guidelines.
       return response.text || "দোকানে বাকি হিসাব একদম ঠিকঠাক আছে। সবাই মিলেমিশে থাকুন! 😊";
     } catch (error) {
       console.error("Gemini Error:", error);

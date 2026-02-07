@@ -31,10 +31,18 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
   // Calculate costs and payments
   expenses.forEach(exp => {
     if (exp.type === ExpenseType.SHARED) {
-      const activeAtTime = members.filter(m => 
-        m.joinDate <= exp.date && 
-        (!m.leaveDate || m.leaveDate >= exp.date) 
-      );
+      // Logic fix: Check if member was active during this specific expense date
+      const activeAtTime = members.filter(m => {
+        if (m.periods && m.periods.length > 0) {
+          // Check if any active period contains the expense date
+          return m.periods.some(p => 
+            p.join <= exp.date && 
+            (!p.leave || p.leave >= exp.date)
+          );
+        }
+        // Fallback for older data without periods array
+        return m.joinDate <= exp.date && (!m.leaveDate || m.leaveDate >= exp.date);
+      });
 
       if (activeAtTime.length > 0) {
         const share = exp.amount / activeAtTime.length;
@@ -82,7 +90,6 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
 /**
  * Formats a currency amount with an optional currency code.
  */
-// Fix: Updated to accept currencyCode as a second argument
 export const formatCurrency = (amount: number, currencyCode: string = 'SAR') => {
   const absAmount = Math.abs(amount);
   try {
@@ -92,12 +99,10 @@ export const formatCurrency = (amount: number, currencyCode: string = 'SAR') => 
       minimumFractionDigits: 2
     }).format(absAmount);
     
-    // Custom formatting: Use 'SR' for 'SAR' as per original design
     const result = currencyCode === 'SAR' ? formatted.replace('SAR', 'SR') : formatted;
     
     return amount < 0 ? `-${result}` : result;
   } catch (e) {
-    // Fallback if currency code is invalid
     return `${amount < 0 ? '-' : ''}${currencyCode} ${absAmount.toFixed(2)}`;
   }
 };
@@ -105,7 +110,6 @@ export const formatCurrency = (amount: number, currencyCode: string = 'SAR') => 
 /**
  * Detects the default currency for the user.
  */
-// Fix: Added missing export expected by App.tsx
 export const getAutoDetectedCurrency = (): string => {
   return 'SAR';
 };

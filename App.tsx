@@ -165,11 +165,13 @@ const App: React.FC = () => {
     const nameInput = (document.getElementById('member-name-input') as HTMLInputElement)?.value;
     if (!nameInput?.trim()) return;
     
+    const now = Date.now();
     const newMember: Member = {
-      id: Date.now().toString(),
+      id: now.toString(),
       name: nameInput.trim(),
       avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(nameInput)}`,
-      joinDate: Date.now(),
+      joinDate: now,
+      periods: [{ join: now }]
     };
     const updated = [...members, newMember];
     setMembers(updated);
@@ -191,7 +193,18 @@ const App: React.FC = () => {
 
   const leaveMember = (id: string) => {
     if (window.confirm("এই মেম্বার কি মেছ ছেড়ে দিচ্ছেন?")) {
-      const updated = members.map(m => m.id === id ? { ...m, leaveDate: Date.now() } : m);
+      const now = Date.now();
+      const updated = members.map(m => {
+        if (m.id === id) {
+          const periods = m.periods || [{ join: m.joinDate }];
+          const lastPeriod = periods[periods.length - 1];
+          if (lastPeriod && !lastPeriod.leave) {
+            lastPeriod.leave = now;
+          }
+          return { ...m, leaveDate: now, periods };
+        }
+        return m;
+      });
       setMembers(updated);
       saveToDisk(updated, expenses);
       showToast("মেম্বারকে নিষ্ক্রিয় করা হয়েছে", "warning");
@@ -200,7 +213,16 @@ const App: React.FC = () => {
 
   const reactivateMember = (id: string) => {
     if (window.confirm("এই মেম্বারকে কি আবার সক্রিয় করতে চান?")) {
-      const updated = members.map(m => m.id === id ? { ...m, leaveDate: undefined } : m);
+      const now = Date.now();
+      const updated = members.map(m => {
+        if (m.id === id) {
+          const periods = m.periods || [{ join: m.joinDate, leave: m.leaveDate }];
+          // Start a new activity session
+          periods.push({ join: now });
+          return { ...m, leaveDate: undefined, periods };
+        }
+        return m;
+      });
       setMembers(updated);
       saveToDisk(updated, expenses);
       showToast("মেম্বার সক্রিয় করা হয়েছে", "success");
