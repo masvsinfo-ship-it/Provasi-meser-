@@ -24,6 +24,9 @@ const App: React.FC = () => {
   const [currencyCode, setCurrencyCode] = useState<string>(() => {
     return localStorage.getItem(`${APP_PREFIX}global_currency`) || getAutoDetectedCurrency();
   });
+
+  // State for breakfast inputs per member
+  const [breakfastInputs, setBreakfastInputs] = useState<Record<string, string>>({});
   
   useEffect(() => {
     if (userPhone) {
@@ -261,6 +264,33 @@ const App: React.FC = () => {
     showToast("হিসাব সেভ হয়েছে!");
     saveToDisk(members, updated);
     setActiveTab('dashboard');
+  };
+
+  const addBreakfastDeposit = (memberId: string) => {
+    const amountRaw = breakfastInputs[memberId];
+    const amount = parseFloat(amountRaw || '');
+    const member = members.find(m => m.id === memberId);
+    
+    if (!member || isNaN(amount) || amount <= 0) {
+      showToast("সঠিক টাকার পরিমাণ দিন", "error");
+      return;
+    }
+
+    const newExpense: Expense = {
+      id: Date.now().toString(),
+      description: "সকালের নাস্তা জমা",
+      amount,
+      type: ExpenseType.PAYMENT,
+      payerId: 'shop',
+      targetMemberId: memberId,
+      date: Date.now(),
+    };
+
+    const updated = [newExpense, ...expenses];
+    setExpenses(updated);
+    setBreakfastInputs(prev => ({ ...prev, [memberId]: '' }));
+    showToast(`${member.name} এর নাস্তার টাকা জমা হয়েছে`);
+    saveToDisk(members, updated);
   };
 
   const deleteExpense = (id: string) => {
@@ -511,6 +541,47 @@ const App: React.FC = () => {
                       </select>
                     )}
                     <button onClick={addExpense} className="w-full py-3.5 rounded-xl font-black shadow-lg transition-all bg-indigo-700 text-white active:scale-95">সেভ করুন</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'breakfast' && (
+              <div className="space-y-4 animate-in fade-in duration-500">
+                <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+                  <h2 className="text-lg font-black text-slate-900 mb-2 flex items-center gap-2">
+                    <span className="text-xl">☕</span> নাস্তার টাকা জমা
+                  </h2>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-4">সকল মেম্বারের নাস্তার হিসাব</p>
+                  
+                  <div className="space-y-3">
+                    {activeMembers.length === 0 ? (
+                      <p className="text-center py-10 text-slate-300 font-bold italic">কোনো সক্রিয় মেম্বার নেই।</p>
+                    ) : (
+                      activeMembers.map(m => (
+                        <div key={m.id} className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <img src={m.avatar} className="w-10 h-10 rounded-full border border-slate-200 bg-white" />
+                            <p className="font-black text-slate-800 text-[12px] truncate">{m.name}</p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <input 
+                              type="number" 
+                              placeholder="পরিমাণ" 
+                              className="w-20 bg-white border rounded-xl px-3 py-2 text-xs font-black outline-none focus:border-indigo-500 transition-all text-center"
+                              value={breakfastInputs[m.id] || ''}
+                              onChange={(e) => setBreakfastInputs(prev => ({ ...prev, [m.id]: e.target.value }))}
+                            />
+                            <button 
+                              onClick={() => addBreakfastDeposit(m.id)}
+                              className="bg-indigo-600 text-white text-[9px] font-black uppercase px-3 py-2 rounded-xl shadow-md active:scale-90 transition-all"
+                            >
+                              জমা
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
