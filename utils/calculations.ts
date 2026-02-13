@@ -1,5 +1,6 @@
-
 import { Member, Expense, ExpenseType, MessSummary, MemberBalance } from '../types.ts';
+
+const BREAKFAST_DESC = "সকালের নাস্তা জমা";
 
 export const calculateMessSummary = (members: Member[], expenses: Expense[]): MessSummary => {
   const totalShared = expenses
@@ -10,8 +11,14 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
     .filter(e => e.type === ExpenseType.PERSONAL)
     .reduce((sum, e) => sum + e.amount, 0);
 
+  // Main mess payments (excluding breakfast)
   const totalPayments = expenses
-    .filter(e => e.type === ExpenseType.PAYMENT)
+    .filter(e => e.type === ExpenseType.PAYMENT && e.description !== BREAKFAST_DESC)
+    .reduce((sum, e) => sum + e.amount, 0);
+
+  // Breakfast total
+  const totalBreakfast = expenses
+    .filter(e => e.type === ExpenseType.PAYMENT && e.description === BREAKFAST_DESC)
     .reduce((sum, e) => sum + e.amount, 0);
 
   const grandTotalDebt = (totalShared + totalPersonal) - totalPayments;
@@ -21,6 +28,7 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
     balancesMap.set(m.id, {
       member: m,
       paid: 0,
+      breakfastPaid: 0,
       sharedShare: 0,
       personalTotal: 0,
       totalCost: 0,
@@ -31,16 +39,13 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
   // Calculate costs and payments
   expenses.forEach(exp => {
     if (exp.type === ExpenseType.SHARED) {
-      // Logic fix: Check if member was active during this specific expense date
       const activeAtTime = members.filter(m => {
         if (m.periods && m.periods.length > 0) {
-          // Check if any active period contains the expense date
           return m.periods.some(p => 
             p.join <= exp.date && 
             (!p.leave || p.leave >= exp.date)
           );
         }
-        // Fallback for older data without periods array
         return m.joinDate <= exp.date && (!m.leaveDate || m.leaveDate >= exp.date);
       });
 
@@ -59,7 +64,11 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
     } else if (exp.type === ExpenseType.PAYMENT && exp.targetMemberId) {
       const target = balancesMap.get(exp.targetMemberId);
       if (target) {
-        target.paid += exp.amount;
+        if (exp.description === BREAKFAST_DESC) {
+          target.breakfastPaid += exp.amount;
+        } else {
+          target.paid += exp.amount;
+        }
       }
     }
   });
@@ -81,15 +90,13 @@ export const calculateMessSummary = (members: Member[], expenses: Expense[]): Me
     totalSharedExpense: totalShared,
     totalPersonalExpense: totalPersonal,
     totalPayments: totalPayments,
+    totalBreakfastPayments: totalBreakfast,
     grandTotalDebt,
     averagePerPerson: average,
     memberBalances: memberBalances
   };
 };
 
-/**
- * Formats a currency amount with an optional currency code.
- */
 export const formatCurrency = (amount: number, currencyCode: string = 'SAR') => {
   const absAmount = Math.abs(amount);
   try {
@@ -107,9 +114,6 @@ export const formatCurrency = (amount: number, currencyCode: string = 'SAR') => 
   }
 };
 
-/**
- * Detects the default currency for the user.
- */
 export const getAutoDetectedCurrency = (): string => {
   return 'SAR';
 };

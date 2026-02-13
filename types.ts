@@ -1,4 +1,3 @@
-
 export enum ExpenseType {
   SHARED = 'SHARED',
   PERSONAL = 'PERSONAL',
@@ -28,7 +27,8 @@ export interface Member {
 
 export interface MemberBalance {
   member: Member;
-  paid: number;         // Total amount this person paid/deposited
+  paid: number;         // Total amount this person paid/deposited for main mess
+  breakfastPaid: number; // Total amount paid specifically for breakfast
   sharedShare: number;  // Their share of mess market
   personalTotal: number; // Their personal specific expenses
   totalCost: number;    // sharedShare + personalTotal
@@ -38,7 +38,8 @@ export interface MemberBalance {
 export interface MessSummary {
   totalSharedExpense: number;
   totalPersonalExpense: number;
-  totalPayments: number;
+  totalPayments: number;      // Main mess payments (excluding breakfast)
+  totalBreakfastPayments: number; // Total breakfast collections
   grandTotalDebt: number;
   averagePerPerson: number;
   memberBalances: MemberBalance[];
