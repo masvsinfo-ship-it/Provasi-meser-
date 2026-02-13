@@ -1,5 +1,4 @@
-
-const CACHE_NAME = 'mess-tracker-offline-v1';
+const CACHE_NAME = 'mess-tracker-offline-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -21,6 +20,7 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
+      console.log('Opened cache');
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
@@ -48,7 +48,7 @@ self.addEventListener('fetch', (event) => {
       }
 
       return fetch(event.request).then((response) => {
-        if (!response || response.status !== 200 || response.type !== 'basic' && !event.request.url.includes('esm.sh')) {
+        if (!response || response.status !== 200 || response.type !== 'basic' && !event.request.url.includes('esm.sh') && !event.request.url.includes('cdn.tailwindcss.com')) {
           return response;
         }
 
