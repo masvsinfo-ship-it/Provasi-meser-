@@ -7,6 +7,7 @@ import { geminiService } from './services/geminiService.ts';
 
 const APP_PREFIX = 'mess_tracker_v3_';
 const USERS_KEY = 'mess_tracker_auth_users';
+const BREAKFAST_DESC = "সকালের নাস্তা জমা";
 
 const App: React.FC = () => {
   const [userPhone, setUserPhone] = useState<string | null>(() => localStorage.getItem('logged_in_phone'));
@@ -278,7 +279,7 @@ const App: React.FC = () => {
 
     const newExpense: Expense = {
       id: Date.now().toString(),
-      description: "সকালের নাস্তা জমা",
+      description: BREAKFAST_DESC,
       amount,
       type: ExpenseType.PAYMENT,
       payerId: 'shop',
@@ -312,7 +313,7 @@ const App: React.FC = () => {
 
   const clearAllBreakfast = () => {
     if (window.confirm("আপনি কি নিশ্চিতভাবে সকল নাস্তার হিসাব মুছে ফেলতে চান?")) {
-      const updated = expenses.filter(e => e.description !== "সকালের নাস্তা জমা");
+      const updated = expenses.filter(e => e.description !== BREAKFAST_DESC);
       setExpenses(updated);
       saveToDisk(members, updated);
       showToast("সকল নাস্তার হিসাব মুছে ফেলা হয়েছে", "warning");
@@ -374,18 +375,22 @@ const App: React.FC = () => {
         <div className="relative z-10">
           <p className="text-indigo-200 text-[10px] font-black uppercase tracking-widest mb-1">মোট দোকান বাকি</p>
           <h1 className="text-3xl font-black">{formatCurrency(summary.grandTotalDebt, currencyCode)}</h1>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            <div className="bg-white/10 p-2 rounded-lg">
-              <p className="text-[7px] text-white/60 font-black uppercase">সবার বাজার</p>
-              <p className="text-[10px] font-black">{formatCurrency(summary.totalSharedExpense, currencyCode)}</p>
+          <div className="mt-3 grid grid-cols-4 gap-1">
+            <div className="bg-white/10 p-1.5 rounded-lg text-center">
+              <p className="text-[6px] text-white/60 font-black uppercase">শেয়ার</p>
+              <p className="text-[9px] font-black">{formatCurrency(summary.totalSharedExpense, currencyCode)}</p>
             </div>
-            <div className="bg-white/10 p-2 rounded-lg">
-              <p className="text-[7px] text-white/60 font-black uppercase">ব্যক্তিগত</p>
-              <p className="text-[10px] font-black">{formatCurrency(summary.totalPersonalExpense, currencyCode)}</p>
+            <div className="bg-white/10 p-1.5 rounded-lg text-center">
+              <p className="text-[6px] text-white/60 font-black uppercase">ব্যক্তিগত</p>
+              <p className="text-[9px] font-black">{formatCurrency(summary.totalPersonalExpense, currencyCode)}</p>
             </div>
-            <div className="bg-emerald-50/20 p-2 rounded-lg">
-              <p className="text-[7px] text-emerald-200 font-black uppercase">মোট জমা</p>
-              <p className="text-[10px] font-black">{formatCurrency(summary.totalPayments, currencyCode)}</p>
+            <div className="bg-emerald-50/20 p-1.5 rounded-lg text-center">
+              <p className="text-[6px] text-emerald-200 font-black uppercase">জমা</p>
+              <p className="text-[9px] font-black">{formatCurrency(summary.totalPayments, currencyCode)}</p>
+            </div>
+            <div className="bg-amber-500/20 p-1.5 rounded-lg text-center">
+              <p className="text-[6px] text-amber-200 font-black uppercase">নাস্তা</p>
+              <p className="text-[9px] font-black">{formatCurrency(summary.totalBreakfastPayments, currencyCode)}</p>
             </div>
           </div>
         </div>
@@ -427,18 +432,22 @@ const App: React.FC = () => {
                   <p className="text-[7px] font-black uppercase text-slate-400">ব্যালেন্স</p>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-50">
-                <div className="bg-indigo-50/50 p-1.5 rounded-xl text-center">
-                  <p className="text-[6px] font-black text-indigo-400 uppercase">শেয়ার</p>
-                  <p className="text-[9px] font-black text-indigo-700">{formatCurrency(mb.sharedShare, currencyCode)}</p>
+              <div className="grid grid-cols-4 gap-1.5 pt-3 border-t border-slate-50">
+                <div className="bg-indigo-50/50 p-1 rounded-xl text-center">
+                  <p className="text-[5px] font-black text-indigo-400 uppercase">শেয়ার</p>
+                  <p className="text-[8px] font-black text-indigo-700">{formatCurrency(mb.sharedShare, currencyCode)}</p>
                 </div>
-                <div className="bg-rose-50/50 p-1.5 rounded-xl text-center">
-                  <p className="text-[6px] font-black text-rose-400 uppercase">ব্যক্তিগত</p>
-                  <p className="text-[9px] font-black text-rose-700">{formatCurrency(mb.personalTotal, currencyCode)}</p>
+                <div className="bg-rose-50/50 p-1 rounded-xl text-center">
+                  <p className="text-[5px] font-black text-rose-400 uppercase">ব্যক্তিগত</p>
+                  <p className="text-[8px] font-black text-rose-700">{formatCurrency(mb.personalTotal, currencyCode)}</p>
                 </div>
-                <div className="bg-emerald-50/50 p-1.5 rounded-xl text-center">
-                  <p className="text-[6px] font-black text-emerald-400 uppercase">জমা</p>
-                  <p className="text-[9px] font-black text-emerald-700">{formatCurrency(mb.paid, currencyCode)}</p>
+                <div className="bg-emerald-50/50 p-1 rounded-xl text-center">
+                  <p className="text-[5px] font-black text-emerald-400 uppercase">জমা</p>
+                  <p className="text-[8px] font-black text-emerald-700">{formatCurrency(mb.paid, currencyCode)}</p>
+                </div>
+                <div className="bg-amber-50/50 p-1 rounded-xl text-center">
+                  <p className="text-[5px] font-black text-amber-500 uppercase">নাস্তা</p>
+                  <p className="text-[8px] font-black text-amber-700">{formatCurrency(mb.breakfastPaid, currencyCode)}</p>
                 </div>
               </div>
             </div>
@@ -594,11 +603,10 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                {/* New Section for Breakfast History */}
                 <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">সাম্প্রতিক নাস্তা জমা</h3>
-                    {expenses.some(e => e.description === "সকালের নাস্তা জমা") && (
+                    {expenses.some(e => e.description === BREAKFAST_DESC) && (
                       <button 
                         onClick={clearAllBreakfast}
                         className="text-[9px] font-black uppercase text-rose-500 bg-rose-50 px-2 py-1 rounded-lg border border-rose-100 active:scale-95 transition-all"
@@ -608,7 +616,7 @@ const App: React.FC = () => {
                     )}
                   </div>
                   <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
-                    {expenses.filter(e => e.description === "সকালের নাস্তা জমা").map(exp => (
+                    {expenses.filter(e => e.description === BREAKFAST_DESC).map(exp => (
                       <div key={exp.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100 group">
                         <div className="min-w-0">
                           <p className="font-black text-slate-700 text-[11px] truncate">
@@ -626,7 +634,7 @@ const App: React.FC = () => {
                         </div>
                       </div>
                     ))}
-                    {!expenses.some(e => e.description === "সকালের নাস্তা জমা") && (
+                    {!expenses.some(e => e.description === BREAKFAST_DESC) && (
                       <p className="text-center py-6 text-slate-300 text-[10px] font-bold italic">আজকের কোনো নাস্তার জমা নেই।</p>
                     )}
                   </div>
