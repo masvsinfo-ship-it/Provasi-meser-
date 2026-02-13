@@ -522,18 +522,27 @@ const App: React.FC = () => {
             {activeTab === 'history' && (
               <div className="space-y-3">
                 <div className="flex justify-between items-center px-1"><h2 className="text-lg font-black text-slate-900">লেনদেন খাতা</h2><button onClick={clearAllExpenses} className="text-[10px] font-black uppercase text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100">সব মুছুন</button></div>
-                {expenses.map(exp => (
-                  <div key={exp.id} className="bg-white p-3 rounded-xl border flex justify-between items-center shadow-sm">
-                    <div>
-                      <p className="font-black text-slate-800 text-[13px]">{exp.description}</p>
-                      <p className="text-[8px] text-slate-400 font-bold uppercase mt-0.5">{new Date(exp.date).toLocaleDateString('bn-BD')}</p>
+                {expenses.map(exp => {
+                  const targetMember = members.find(m => m.id === exp.targetMemberId);
+                  const memberName = exp.type === ExpenseType.SHARED ? "সবার বাজার" : (targetMember?.name || "অজানা");
+                  
+                  return (
+                    <div key={exp.id} className="bg-white p-3 rounded-xl border flex justify-between items-center shadow-sm">
+                      <div className="min-w-0 flex-1 pr-4">
+                        <p className="font-black text-slate-800 text-[13px] truncate">{exp.description}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <p className="text-[8px] text-slate-400 font-bold uppercase">{new Date(exp.date).toLocaleDateString('bn-BD')}</p>
+                          <span className="text-[8px] text-slate-300">•</span>
+                          <p className="text-[8px] text-indigo-500 font-black uppercase tracking-wider">{memberName}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className={`font-black text-[13px] ${exp.type === ExpenseType.PAYMENT ? 'text-emerald-600' : 'text-rose-600'}`}>{formatCurrency(exp.amount, currencyCode)}</span>
+                        <button onClick={() => deleteExpense(exp.id)} className="text-slate-300 hover:text-rose-500 p-1 transition-colors"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className={`font-black text-[13px] ${exp.type === ExpenseType.PAYMENT ? 'text-emerald-600' : 'text-rose-600'}`}>{formatCurrency(exp.amount, currencyCode)}</span>
-                      <button onClick={() => deleteExpense(exp.id)} className="text-slate-300 hover:text-rose-500 p-1 transition-colors"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
             {activeTab === 'summary' && (
