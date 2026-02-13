@@ -310,6 +310,15 @@ const App: React.FC = () => {
     }
   };
 
+  const clearAllBreakfast = () => {
+    if (window.confirm("আপনি কি নিশ্চিতভাবে সকল নাস্তার হিসাব মুছে ফেলতে চান?")) {
+      const updated = expenses.filter(e => e.description !== "সকালের নাস্তা জমা");
+      setExpenses(updated);
+      saveToDisk(members, updated);
+      showToast("সকল নাস্তার হিসাব মুছে ফেলা হয়েছে", "warning");
+    }
+  };
+
   const activeMembers = members.filter(m => !m.leaveDate);
   const inactiveMembers = members.filter(m => !!m.leaveDate);
 
@@ -374,7 +383,7 @@ const App: React.FC = () => {
               <p className="text-[7px] text-white/60 font-black uppercase">ব্যক্তিগত</p>
               <p className="text-[10px] font-black">{formatCurrency(summary.totalPersonalExpense, currencyCode)}</p>
             </div>
-            <div className="bg-emerald-500/20 p-2 rounded-lg">
+            <div className="bg-emerald-50/20 p-2 rounded-lg">
               <p className="text-[7px] text-emerald-200 font-black uppercase">মোট জমা</p>
               <p className="text-[10px] font-black">{formatCurrency(summary.totalPayments, currencyCode)}</p>
             </div>
@@ -581,6 +590,44 @@ const App: React.FC = () => {
                           </div>
                         </div>
                       ))
+                    )}
+                  </div>
+                </div>
+
+                {/* New Section for Breakfast History */}
+                <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">সাম্প্রতিক নাস্তা জমা</h3>
+                    {expenses.some(e => e.description === "সকালের নাস্তা জমা") && (
+                      <button 
+                        onClick={clearAllBreakfast}
+                        className="text-[9px] font-black uppercase text-rose-500 bg-rose-50 px-2 py-1 rounded-lg border border-rose-100 active:scale-95 transition-all"
+                      >
+                        সব মুছুন
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+                    {expenses.filter(e => e.description === "সকালের নাস্তা জমা").map(exp => (
+                      <div key={exp.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100 group">
+                        <div className="min-w-0">
+                          <p className="font-black text-slate-700 text-[11px] truncate">
+                            {members.find(m => m.id === exp.targetMemberId)?.name || 'অজানা'}
+                          </p>
+                          <p className="text-[7px] text-slate-400 font-bold uppercase tracking-tighter">
+                            {new Date(exp.date).toLocaleDateString('bn-BD')} • {new Date(exp.date).toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-emerald-600 text-[11px]">{formatCurrency(exp.amount, currencyCode)}</span>
+                          <button onClick={() => deleteExpense(exp.id)} className="text-slate-300 hover:text-rose-500 p-1.5 hover:bg-rose-50 rounded-lg transition-colors">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {!expenses.some(e => e.description === "সকালের নাস্তা জমা") && (
+                      <p className="text-center py-6 text-slate-300 text-[10px] font-bold italic">আজকের কোনো নাস্তার জমা নেই।</p>
                     )}
                   </div>
                 </div>
