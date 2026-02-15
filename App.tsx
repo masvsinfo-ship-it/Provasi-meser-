@@ -373,42 +373,46 @@ const App: React.FC = () => {
           <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span> মেম্বার ভিত্তিক হিসাব
         </h3>
         
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-4">
           {summary.memberBalances.map((mb) => (
-            <div key={mb.member.id} className={`bg-white rounded-2xl p-3 shadow-sm border ${mb.member.leaveDate ? 'border-slate-200 opacity-60' : 'border-slate-100'} flex flex-col space-y-2 relative overflow-hidden transition-all active:scale-95`}>
-              <div className="flex items-center gap-2">
-                <img src={mb.member.avatar} className="w-8 h-8 rounded-full border bg-slate-50 shadow-sm" />
-                <div className="min-w-0">
-                  <p className="font-black text-slate-800 text-[11px] truncate">{mb.member.name}</p>
-                  <p className="text-[6px] font-black text-slate-400 uppercase tracking-tight">
-                    {mb.member.leaveDate ? 'নিষ্ক্রিয়' : 'সক্রিয়'}
+            <div key={mb.member.id} className={`bg-white rounded-2xl p-4 shadow-sm border ${mb.member.leaveDate ? 'border-slate-200 opacity-60' : 'border-slate-100'} flex flex-col space-y-3 relative overflow-hidden transition-all active:scale-[0.98]`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <img src={mb.member.avatar} className="w-12 h-12 rounded-full border-2 border-indigo-50 bg-slate-50 shadow-sm" />
+                    {!mb.member.leaveDate && <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></div>}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-black text-slate-800 text-[14px] truncate">{mb.member.name}</p>
+                    <p className={`text-[7px] font-black uppercase tracking-wider ${mb.member.leaveDate ? 'text-slate-400' : 'text-indigo-500'}`}>
+                      {mb.member.leaveDate ? 'মেছ ছেড়েছেন' : 'বর্তমানে সক্রিয়'}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                   <p className={`text-[18px] font-black leading-none ${mb.netBalance < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                    {formatCurrency(mb.netBalance, currencyCode)}
                   </p>
+                  <p className="text-[8px] font-black uppercase text-slate-300 mt-1 tracking-widest">ব্যালেন্স</p>
                 </div>
               </div>
 
-              <div className="py-1">
-                <p className={`text-[14px] font-black leading-none ${mb.netBalance < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                  {formatCurrency(mb.netBalance, currencyCode)}
-                </p>
-                <p className="text-[7px] font-black uppercase text-slate-300 mt-1">ব্যালেন্স</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-1 pt-2 border-t border-slate-50">
-                <div className="bg-indigo-50/40 p-1 rounded-lg text-center">
-                  <p className="text-[5px] font-black text-indigo-400 uppercase">শেয়ার</p>
-                  <p className="text-[8px] font-black text-indigo-700">{formatCurrency(mb.sharedShare, currencyCode)}</p>
+              <div className="grid grid-cols-4 gap-2 pt-3 border-t border-slate-50">
+                <div className="bg-indigo-50/40 p-1.5 rounded-xl text-center">
+                  <p className="text-[6px] font-black text-indigo-400 uppercase tracking-tighter">শেয়ার</p>
+                  <p className="text-[10px] font-black text-indigo-700">{formatCurrency(mb.sharedShare, currencyCode)}</p>
                 </div>
-                <div className="bg-rose-50/40 p-1 rounded-lg text-center">
-                  <p className="text-[5px] font-black text-rose-400 uppercase">ব্যক্তিগত</p>
-                  <p className="text-[8px] font-black text-rose-700">{formatCurrency(mb.personalTotal, currencyCode)}</p>
+                <div className="bg-rose-50/40 p-1.5 rounded-xl text-center">
+                  <p className="text-[6px] font-black text-rose-400 uppercase tracking-tighter">ব্যক্তিগত</p>
+                  <p className="text-[10px] font-black text-rose-700">{formatCurrency(mb.personalTotal, currencyCode)}</p>
                 </div>
-                <div className="bg-emerald-50/40 p-1 rounded-lg text-center">
-                  <p className="text-[5px] font-black text-emerald-400 uppercase">জমা</p>
-                  <p className="text-[8px] font-black text-emerald-700">{formatCurrency(mb.paid, currencyCode)}</p>
+                <div className="bg-emerald-50/40 p-1.5 rounded-xl text-center">
+                  <p className="text-[6px] font-black text-emerald-400 uppercase tracking-tighter">জমা</p>
+                  <p className="text-[10px] font-black text-emerald-700">{formatCurrency(mb.paid, currencyCode)}</p>
                 </div>
-                <div className="bg-amber-50/40 p-1 rounded-lg text-center">
-                  <p className="text-[5px] font-black text-amber-500 uppercase">নাস্তা</p>
-                  <p className="text-[8px] font-black text-amber-700">{formatCurrency(mb.breakfastPaid, currencyCode)}</p>
+                <div className="bg-amber-50/40 p-1.5 rounded-xl text-center">
+                  <p className="text-[6px] font-black text-amber-500 uppercase tracking-tighter">নাস্তা</p>
+                  <p className="text-[10px] font-black text-amber-700">{formatCurrency(mb.breakfastPaid, currencyCode)}</p>
                 </div>
               </div>
             </div>
