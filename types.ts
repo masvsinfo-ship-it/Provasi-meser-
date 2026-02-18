@@ -5,6 +5,7 @@ export enum ExpenseType {
   PAYMENT = 'PAYMENT'
 }
 
+// Added the missing Expense interface
 export interface Expense {
   id: string;
   description: string;
@@ -21,29 +22,26 @@ export interface Member {
   avatar: string;
   joinDate: number;
   leaveDate?: number;
+  // Tracks multiple join/leave sessions
   periods?: Array<{ join: number; leave?: number }>;
-}
-
-export interface UserProfile {
-  name: string;
 }
 
 export interface MemberBalance {
   member: Member;
-  paid: number;
-  breakfastPaid: number;
-  sharedShare: number;
-  personalTotal: number;
-  totalCost: number;
-  netBalance: number;
+  paid: number;         // সাধারণ জমা (নাস্তা বাদে)
+  breakfastPaid: number; // শুধুমাত্র নাস্তা জমা
+  sharedShare: number;  // Their share of mess market
+  personalTotal: number; // Their personal specific expenses
+  totalCost: number;    // sharedShare + personalTotal
+  netBalance: number;   // paid - totalCost
 }
 
 export interface MessSummary {
   totalSharedExpense: number;
   totalPersonalExpense: number;
-  totalPayments: number;
-  totalBreakfastPayments: number;
-  grandTotalDebt: number;
+  totalPayments: number;      // সাধারণ পেমেন্ট
+  totalBreakfastPayments: number; // মোট নাস্তা জমা
+  grandTotalDebt: number;     // বাজার খরচ - সাধারণ জমা
   averagePerPerson: number;
   memberBalances: MemberBalance[];
 }
