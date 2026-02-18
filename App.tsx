@@ -8,13 +8,31 @@ const APP_PREFIX = 'mess_tracker_v3_';
 const USERS_KEY = 'mess_tracker_auth_users';
 const BREAKFAST_DESC = "সকালের নাস্তা জমা";
 
+const COUNTRIES = [
+  { name: 'Bangladesh', code: '+880', flag: '🇧🇩' },
+  { name: 'Saudi Arabia', code: '+966', flag: '🇸🇦' },
+  { name: 'UAE', code: '+971', flag: '🇦🇪' },
+  { name: 'Qatar', code: '+974', flag: '🇶🇦' },
+  { name: 'Oman', code: '+968', flag: '🇴🇲' },
+  { name: 'Kuwait', code: '+965', flag: '🇰🇼' },
+  { name: 'Bahrain', code: '+973', flag: '🇧🇭' },
+  { name: 'Malaysia', code: '+60', flag: '🇲🇾' },
+];
+
 const App: React.FC = () => {
   const [userPhone, setUserPhone] = useState<string | null>(() => localStorage.getItem('logged_in_phone'));
   const [isAdmin, setIsAdmin] = useState<boolean>(() => localStorage.getItem('is_admin') === 'true');
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [isAdminTab, setIsAdminTab] = useState(false);
+  
+  // Auth States
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[1]); // Default Saudi
   const [tempPhone, setTempPhone] = useState('');
   const [tempPassword, setTempPassword] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [generatedOtp, setGeneratedOtp] = useState('');
+  const [userEnteredOtp, setUserEnteredOtp] = useState('');
+
   const [activeTab, setActiveTab] = useState('dashboard');
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'warning' } | null>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -27,6 +45,8 @@ const App: React.FC = () => {
 
   const [breakfastInputs, setBreakfastInputs] = useState<Record<string, string>>({});
   
+  const fullPhone = `${selectedCountry.code}${tempPhone}`;
+
   useEffect(() => {
     if (userPhone) {
       const savedMembers = localStorage.getItem(`${APP_PREFIX}${userPhone}_members`);
@@ -60,6 +80,27 @@ const App: React.FC = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
+  const handleSendOtp = () => {
+    if (tempPhone.length < 6 || tempPassword.length < 4) {
+      showToast("সঠিক নাম্বার ও পাসওয়ার্ড দিন", "error");
+      return;
+    }
+    const storedUsersRaw = localStorage.getItem(USERS_KEY);
+    const users = storedUsersRaw ? JSON.parse(storedUsersRaw) : {};
+    
+    if (users[fullPhone]) {
+      showToast("এই নাম্বার আগে থেকেই আছে", "error");
+      return;
+    }
+
+    const newOtp = Math.floor(1000 + Math.random() * 9000).toString();
+    setGeneratedOtp(newOtp);
+    setOtpSent(true);
+    // Simulating SMS sending
+    alert(`আপনার রেজিস্ট্রেশন কোড (OTP): ${newOtp}`);
+    showToast("আপনার মোবাইলে OTP পাঠানো হয়েছে", "success");
+  };
+
   const handleAuth = (e: React.FormEvent) => {
     e.preventDefault();
     if (isAdminTab) {
@@ -73,34 +114,33 @@ const App: React.FC = () => {
       }
       return;
     }
-    if (tempPhone.length < 10 || tempPassword.length < 4) {
-      showToast("সঠিক তথ্য দিন", "error");
-      return;
-    }
+
     const storedUsersRaw = localStorage.getItem(USERS_KEY);
     const users = storedUsersRaw ? JSON.parse(storedUsersRaw) : {};
+
     if (isLoginMode) {
-      if (users[tempPhone] && users[tempPhone] === tempPassword) {
-        localStorage.setItem('logged_in_phone', tempPhone);
+      if (users[fullPhone] && users[fullPhone] === tempPassword) {
+        localStorage.setItem('logged_in_phone', fullPhone);
         localStorage.setItem('is_admin', 'false');
-        setUserPhone(tempPhone);
+        setUserPhone(fullPhone);
         setIsAdmin(false);
         showToast("লগইন সফল!");
       } else {
         showToast("নাম্বার বা পাসওয়ার্ড ভুল!", "error");
       }
     } else {
-      if (users[tempPhone]) {
-        showToast("এই নাম্বার আগে থেকেই আছে", "error");
-      } else {
-        users[tempPhone] = tempPassword;
-        localStorage.setItem(USERS_KEY, JSON.stringify(users));
-        localStorage.setItem('logged_in_phone', tempPhone);
-        localStorage.setItem('is_admin', 'false');
-        setUserPhone(tempPhone);
-        setIsAdmin(false);
-        showToast("রেজিস্ট্রেশন সফল!");
+      // Signup with OTP check
+      if (userEnteredOtp !== generatedOtp) {
+        showToast("ভুল OTP দিয়েছেন!", "error");
+        return;
       }
+      users[fullPhone] = tempPassword;
+      localStorage.setItem(USERS_KEY, JSON.stringify(users));
+      localStorage.setItem('logged_in_phone', fullPhone);
+      localStorage.setItem('is_admin', 'false');
+      setUserPhone(fullPhone);
+      setIsAdmin(false);
+      showToast("রেজিস্ট্রেশন সফল!");
     }
   };
 
@@ -113,6 +153,7 @@ const App: React.FC = () => {
       setIsAdminTab(false);
       setTempPassword('');
       setTempPhone('');
+      setOtpSent(false);
       setActiveTab('dashboard');
       showToast("সফলভাবে লগআউট হয়েছে");
     }
@@ -429,25 +470,105 @@ const App: React.FC = () => {
         <div className="relative z-10 space-y-5 max-w-sm mx-auto w-full py-8">
           <h2 className="text-xl font-black tracking-tight mb-2">ব্যাচেলর দের মেছের হিসাব</h2>
           <div className="w-16 h-16 bg-white rounded-2xl mx-auto flex items-center justify-center text-3xl shadow-2xl mb-2">🏪</div>
-          <h1 className="text-lg font-bold tracking-tight opacity-90">{isAdminTab ? 'এডমিন লগিন' : (isLoginMode ? 'ইউজার লগইন' : 'নতুন অ্যাকাউন্ট')}</h1>
+          <h1 className="text-lg font-bold tracking-tight opacity-90">
+            {isAdminTab ? 'এডমিন লগিন' : (isLoginMode ? 'ইউজার লগইন' : 'নতুন অ্যাকাউন্ট')}
+          </h1>
+          
           <form onSubmit={handleAuth} className="space-y-3">
-            {!isAdminTab && <input type="tel" placeholder="মোবাইল নাম্বার" className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" value={tempPhone} onChange={e => setTempPhone(e.target.value)} />}
-            <input type="password" placeholder={isAdminTab ? "এডমিন পাসওয়ার্ড" : "পাসওয়ার্ড"} className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" value={tempPassword} onChange={e => setTempPassword(e.target.value)} />
-            <button className="w-full bg-white text-indigo-900 font-black py-3.5 rounded-xl text-md shadow-xl active:scale-95 transition-all">প্রবেশ করুন</button>
+            {!isAdminTab && (
+              <div className="space-y-3">
+                {/* Country and Phone Section */}
+                <div className="flex gap-2">
+                  <div className="relative">
+                    <select 
+                      className="h-full bg-white/10 border-2 border-white/20 rounded-xl px-2 py-3 text-sm font-bold appearance-none outline-none focus:bg-white focus:text-indigo-900 transition-all cursor-pointer"
+                      value={selectedCountry.name}
+                      onChange={(e) => setSelectedCountry(COUNTRIES.find(c => c.name === e.target.value) || COUNTRIES[0])}
+                    >
+                      {COUNTRIES.map(c => (
+                        <option key={c.name} value={c.name}>{c.flag} {c.code}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <input 
+                    type="tel" 
+                    placeholder="মোবাইল নাম্বার" 
+                    className="flex-1 bg-white/10 border-2 border-white/20 rounded-xl px-4 py-3 text-md font-bold outline-none focus:bg-white focus:text-indigo-900 transition-all" 
+                    value={tempPhone} 
+                    onChange={e => setTempPhone(e.target.value)} 
+                    disabled={otpSent && !isLoginMode}
+                  />
+                </div>
+                
+                {/* Password Section */}
+                <input 
+                  type="password" 
+                  placeholder="পাসওয়ার্ড" 
+                  className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none focus:bg-white focus:text-indigo-900 transition-all" 
+                  value={tempPassword} 
+                  onChange={e => setTempPassword(e.target.value)} 
+                  disabled={otpSent && !isLoginMode}
+                />
+
+                {/* OTP Section for Signup */}
+                {!isLoginMode && otpSent && (
+                  <div className="animate-in slide-in-from-top-2">
+                    <input 
+                      type="number" 
+                      placeholder="৪ সংখ্যার OTP দিন" 
+                      className="w-full bg-emerald-500/20 border-2 border-emerald-500/40 rounded-xl px-5 py-3 text-md font-black text-center outline-none focus:bg-white focus:text-indigo-900 transition-all" 
+                      value={userEnteredOtp} 
+                      onChange={e => setUserEnteredOtp(e.target.value)} 
+                    />
+                    <p className="text-[10px] text-emerald-300 font-bold mt-2">আপনার ওটিপি: {generatedOtp} (পরীক্ষামূলক)</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {isAdminTab && (
+              <input 
+                type="password" 
+                placeholder="এডমিন পাসওয়ার্ড" 
+                className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" 
+                value={tempPassword} 
+                onChange={e => setTempPassword(e.target.value)} 
+              />
+            )}
+
+            {!isLoginMode && !otpSent ? (
+              <button 
+                type="button" 
+                onClick={handleSendOtp}
+                className="w-full bg-emerald-500 text-white font-black py-3.5 rounded-xl text-md shadow-xl active:scale-95 transition-all"
+              >
+                OTP পাঠান
+              </button>
+            ) : (
+              <button className="w-full bg-white text-indigo-900 font-black py-3.5 rounded-xl text-md shadow-xl active:scale-95 transition-all">
+                {isLoginMode ? 'প্রবেশ করুন' : 'অ্যাকাউন্ট নিশ্চিত করুন'}
+              </button>
+            )}
           </form>
+
           <div className="flex flex-col gap-3 items-center">
             {!isAdminTab ? (
               <>
-                <button onClick={() => setIsLoginMode(!isLoginMode)} className="text-indigo-200 font-bold text-sm underline">{isLoginMode ? 'নতুন মেছ? অ্যাকাউন্ট খুলুন' : 'আগের মেছ? লগইন করুন'}</button>
+                <button onClick={() => { setIsLoginMode(!isLoginMode); setOtpSent(false); }} className="text-indigo-200 font-bold text-sm underline">
+                  {isLoginMode ? 'নতুন মেছ? অ্যাকাউন্ট খুলুন' : 'আগের মেছ? লগইন করুন'}
+                </button>
                 <button onClick={() => setIsAdminTab(true)} className="text-white/40 font-black text-[10px] uppercase tracking-widest bg-white/5 px-4 py-2 rounded-full mt-2">এডমিন লগিন</button>
               </>
             ) : (
               <button onClick={() => setIsAdminTab(false)} className="text-indigo-200 font-bold text-sm underline">ইউজার লগইনে ফিরে যান</button>
             )}
           </div>
+          
           <div className="pt-8 flex flex-col items-center gap-3">
             <button onClick={handleInstallApp} className="group flex items-center gap-4 bg-indigo-600 border border-white/20 hover:bg-indigo-500 transition-all px-8 py-3 rounded-2xl shadow-xl active:scale-95">
-              <div className="bg-white/10 p-2.5 rounded-xl"><svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M17.523 15.3414L19.5441 18.8142C19.7431 19.1561 19.626 19.5932 19.2825 19.7922C18.939 19.9912 18.502 19.8741 18.303 19.5306L16.2415 15.9922C15.0001 16.634 13.5653 17 12 17C10.4347 17 9 16.634 7.7585 15.9922L5.69697 19.5306C5.498 19.8741 5.06094 19.9912 4.71746 19.7922C4.37397 19.5932 4.25688 19.1561 4.45591 18.8142L6.47697 15.3414C4.10319 13.8863 2.5 11.3323 2.5 8.39999C2.5 8.08244 2.51863 7.76922 2.55469 7.46143H21.4453C21.4814 7.76922 21.5 8.08244 21.5 8.39999C21.5 11.3323 19.8968 13.8863 17.523 15.3414ZM7 11.5C7.55228 11.5 8 11.0523 8 10.5C8 9.94772 7.55228 9.5 7 9.5C6.44772 9.5 6 9.94772 6 10.5C6 11.0523 6.44772 11.5 7 11.5ZM17 11.5C17.5523 11.5 18 11.0523 18 10.5C18 9.94772 17.5523 9.5 17 9.5C16.4477 9.5 16 9.94772 16 10.5C16 11.0523 16.4477 11.5 17 11.5ZM15.5 3.5C15.5 3.5 15.5 3.5 15.5 3.5C15.5 3.5 15.5 3.5 15.5 3.5ZM15.8285 2.17157L17.2427 0.757359C17.5356 0.464466 18.0104 0.464466 18.3033 0.757359C18.5962 1.05025 18.5962 1.52513 18.3033 1.81802L17.1517 2.9696C18.3562 3.90595 19.3412 5.09337 20.0381 6.46143H3.96191C4.65882 5.09337 5.64379 3.90595 6.84831 2.9696L5.6967 1.81802C5.40381 1.52513 5.40381 1.05025 5.6967 0.757359C5.98959 0.464466 6.46447 0.464466 6.75736 0.757359L8.17157 2.17157C9.3375 1.41113 10.6385 1 12 1C13.3615 1 14.6625 1.41113 15.8285 2.17157Z"/></svg></div>
+              <div className="bg-white/10 p-2.5 rounded-xl">
+                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M17.523 15.3414L19.5441 18.8142C19.7431 19.1561 19.626 19.5932 19.2825 19.7922C18.939 19.9912 18.502 19.8741 18.303 19.5306L16.2415 15.9922C15.0001 16.634 13.5653 17 12 17C10.4347 17 9 16.634 7.7585 15.9922L5.69697 19.5306C5.498 19.8741 5.06094 19.9912 4.71746 19.7922C4.37397 19.5932 4.25688 19.1561 4.45591 18.8142L6.47697 15.3414C4.10319 13.8863 2.5 11.3323 2.5 8.39999C2.5 8.08244 2.51863 7.76922 2.55469 7.46143H21.4453C21.4814 7.76922 21.5 8.08244 21.5 8.39999C21.5 11.3323 19.8968 13.8863 17.523 15.3414ZM7 11.5C7.55228 11.5 8 11.0523 8 10.5C8 9.94772 7.55228 9.5 7 9.5C6.44772 9.5 6 9.94772 6 10.5C6 11.0523 6.44772 11.5 7 11.5ZM17 11.5C17.5523 11.5 18 11.0523 18 10.5C18 9.94772 17.5523 9.5 17 9.5C16.4477 9.5 16 9.94772 16 10.5C16 11.0523 16.4477 11.5 17 11.5ZM15.5 3.5C15.5 3.5 15.5 3.5 15.5 3.5C15.5 3.5 15.5 3.5 15.5 3.5ZM15.8285 2.17157L17.2427 0.757359C17.5356 0.464466 18.0104 0.464466 18.3033 0.757359C18.5962 1.05025 18.5962 1.52513 18.3033 1.81802L17.1517 2.9696C18.3562 3.90595 19.3412 5.09337 20.0381 6.46143H3.96191C4.65882 5.09337 5.64379 3.90595 6.84831 2.9696L5.6967 1.81802C5.40381 1.52513 5.40381 1.05025 5.6967 0.757359C5.98959 0.464466 6.46447 0.464466 6.75736 0.757359L8.17157 2.17157C9.3375 1.41113 10.6385 1 12 1C13.3615 1 14.6625 1.41113 15.8285 2.17157Z"/></svg>
+              </div>
               <div className="text-left border-l border-white/20 pl-4">
                 <p className="text-[10px] font-black uppercase text-indigo-200 mb-1">এন্ড্রয়েড অ্যাপ</p>
                 <p className="text-[14px] font-black text-white">ইনস্টল করুন</p>
