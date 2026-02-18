@@ -1,71 +1,20 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Member, Expense, ExpenseType, MessSummary } from './types.ts';
 import { calculateMessSummary, formatCurrency, getAutoDetectedCurrency } from './utils/calculations.ts';
 import Layout from './components/Layout.tsx';
 import { geminiService } from './services/geminiService.ts';
-import { jsPDF } from 'jspdf';
 
 const APP_PREFIX = 'mess_tracker_v3_';
 const USERS_KEY = 'mess_tracker_auth_users';
-const PROFILES_KEY = 'mess_tracker_user_profiles'; // Added to store names
 const BREAKFAST_DESC = "সকালের নাস্তা জমা";
-
-const COUNTRIES = [
-  { name: 'Bangladesh', code: '+880', flag: '🇧🇩', length: 11 },
-  { name: 'Saudi Arabia', code: '+966', flag: '🇸🇦', length: 9 },
-  { name: 'UAE', code: '+971', flag: '🇦🇪', length: 9 },
-  { name: 'Qatar', code: '+974', flag: '🇶🇦', length: 8 },
-  { name: 'Oman', code: '+968', flag: '🇴🇲', length: 8 },
-  { name: 'Kuwait', code: '+965', flag: '🇰🇼', length: 8 },
-  { name: 'Bahrain', code: '+973', flag: '🇧🇭', length: 8 },
-  { name: 'Malaysia', code: '+60', flag: '🇲🇾', length: 9 },
-  { name: 'India', code: '+91', flag: '🇮🇳', length: 10 },
-  { name: 'Pakistan', code: '+92', flag: '🇵🇰', length: 10 },
-  { name: 'Nepal', code: '+977', flag: '🇳🇵', length: 10 },
-  { name: 'Sri Lanka', code: '+94', flag: '🇱🇰', length: 9 },
-  { name: 'USA', code: '+1', flag: '🇺🇸', length: 10 },
-  { name: 'Canada', code: '+1', flag: '🇨🇦', length: 10 },
-  { name: 'UK', code: '+44', flag: '🇬🇧', length: 10 },
-  { name: 'Italy', code: '+39', flag: '🇮🇹', length: 10 },
-  { name: 'Singapore', code: '+65', flag: '🇸🇬', length: 8 },
-  { name: 'Maldives', code: '+960', flag: '🇲🇻', length: 7 },
-  { name: 'Lebanon', code: '+961', flag: '🇱🇧', length: 8 },
-  { name: 'Jordan', code: '+962', flag: '🇯🇴', length: 9 },
-  { name: 'South Korea', code: '+82', flag: '🇰🇷', length: 10 },
-  { name: 'Japan', code: '+81', flag: '🇯🇵', length: 10 },
-  { name: 'France', code: '+33', flag: '🇫🇷', length: 9 },
-  { name: 'Germany', code: '+49', flag: '🇩🇪', length: 11 },
-  { name: 'Australia', code: '+61', flag: '🇦🇺', length: 9 },
-  { name: 'Spain', code: '+34', flag: '🇪🇸', length: 9 },
-  { name: 'Portugal', code: '+351', flag: '🇵🇹', length: 9 },
-  { name: 'South Africa', code: '+27', flag: '🇿🇦', length: 9 },
-  { name: 'Egypt', code: '+20', flag: '🇪🇬', length: 10 },
-  { name: 'Turkey', code: '+90', flag: '🇹🇷', length: 10 },
-  { name: 'Greece', code: '+30', flag: '🇬🇷', length: 10 },
-  { name: 'Mauritius', code: '+230', flag: '🇲🇺', length: 8 },
-  { name: 'Brunei', code: '+673', flag: '🇧🇳', length: 7 },
-  { name: 'Hong Kong', code: '+852', flag: '🇭🇰', length: 8 },
-  { name: 'Vietnam', code: '+84', flag: '🇻🇳', length: 9 },
-  { name: 'Thailand', code: '+66', flag: '🇹🇭', length: 9 },
-  { name: 'Switzerland', code: '+41', flag: '🇨🇭', length: 9 },
-].sort((a, b) => a.name.localeCompare(b.name));
 
 const App: React.FC = () => {
   const [userPhone, setUserPhone] = useState<string | null>(() => localStorage.getItem('logged_in_phone'));
   const [isAdmin, setIsAdmin] = useState<boolean>(() => localStorage.getItem('is_admin') === 'true');
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [isAdminTab, setIsAdminTab] = useState(false);
-  
-  // Auth States
-  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES.find(c => c.name === 'Saudi Arabia') || COUNTRIES[0]); 
-  const [tempName, setTempName] = useState(''); // Added for registration name
   const [tempPhone, setTempPhone] = useState('');
   const [tempPassword, setTempPassword] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [generatedOtp, setGeneratedOtp] = useState('');
-  const [userEnteredOtp, setUserEnteredOtp] = useState('');
-
   const [activeTab, setActiveTab] = useState('dashboard');
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'warning' } | null>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -78,8 +27,6 @@ const App: React.FC = () => {
 
   const [breakfastInputs, setBreakfastInputs] = useState<Record<string, string>>({});
   
-  const fullPhone = `${selectedCountry.code}${tempPhone}`;
-
   useEffect(() => {
     if (userPhone) {
       const savedMembers = localStorage.getItem(`${APP_PREFIX}${userPhone}_members`);
@@ -113,41 +60,6 @@ const App: React.FC = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const validatePhoneNumber = () => {
-    if (tempPhone.length !== selectedCountry.length) {
-      showToast(`${selectedCountry.name} এর জন্য ${selectedCountry.length} সংখ্যার সঠিক নাম্বার দিন`, "error");
-      return false;
-    }
-    return true;
-  };
-
-  const handleSendOtp = () => {
-    if (!isLoginMode && !tempName.trim()) {
-      showToast("আপনার নাম দিন", "error");
-      return;
-    }
-    if (!validatePhoneNumber()) return;
-    
-    if (tempPassword.length < 4) {
-      showToast("পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের দিন", "error");
-      return;
-    }
-
-    const storedUsersRaw = localStorage.getItem(USERS_KEY);
-    const users = storedUsersRaw ? JSON.parse(storedUsersRaw) : {};
-    
-    if (users[fullPhone] || users[tempPhone]) {
-      showToast("এই নাম্বার আগে থেকেই আছে", "error");
-      return;
-    }
-
-    const newOtp = Math.floor(1000 + Math.random() * 9000).toString();
-    setGeneratedOtp(newOtp);
-    setOtpSent(true);
-    alert(`আপনার রেজিস্ট্রেশন কোড (OTP): ${newOtp}`);
-    showToast("আপনার মোবাইলে OTP পাঠানো হয়েছে", "success");
-  };
-
   const handleAuth = (e: React.FormEvent) => {
     e.preventDefault();
     if (isAdminTab) {
@@ -161,64 +73,34 @@ const App: React.FC = () => {
       }
       return;
     }
-
-    if (!validatePhoneNumber()) return;
-
+    if (tempPhone.length < 10 || tempPassword.length < 4) {
+      showToast("সঠিক তথ্য দিন", "error");
+      return;
+    }
     const storedUsersRaw = localStorage.getItem(USERS_KEY);
     const users = storedUsersRaw ? JSON.parse(storedUsersRaw) : {};
-
     if (isLoginMode) {
-      let finalLoginPhone = fullPhone;
-      let loginSuccess = false;
-
-      if (users[fullPhone] && users[fullPhone] === tempPassword) {
-        loginSuccess = true;
-      } 
-      else if (users[tempPhone] && users[tempPhone] === tempPassword) {
-        const oldPhone = tempPhone;
-        users[fullPhone] = users[oldPhone];
-        delete users[oldPhone];
-        
-        const oldMembers = localStorage.getItem(`${APP_PREFIX}${oldPhone}_members`);
-        const oldExpenses = localStorage.getItem(`${APP_PREFIX}${oldPhone}_expenses`);
-        if (oldMembers) localStorage.setItem(`${APP_PREFIX}${fullPhone}_members`, oldMembers);
-        if (oldExpenses) localStorage.setItem(`${APP_PREFIX}${fullPhone}_expenses`, oldExpenses);
-        
-        localStorage.removeItem(`${APP_PREFIX}${oldPhone}_members`);
-        localStorage.removeItem(`${APP_PREFIX}${oldPhone}_expenses`);
-        
-        localStorage.setItem(USERS_KEY, JSON.stringify(users));
-        
-        loginSuccess = true;
-        finalLoginPhone = fullPhone;
-      }
-
-      if (loginSuccess) {
-        localStorage.setItem('logged_in_phone', finalLoginPhone);
+      if (users[tempPhone] && users[tempPhone] === tempPassword) {
+        localStorage.setItem('logged_in_phone', tempPhone);
         localStorage.setItem('is_admin', 'false');
-        setUserPhone(finalLoginPhone);
+        setUserPhone(tempPhone);
         setIsAdmin(false);
         showToast("লগইন সফল!");
       } else {
         showToast("নাম্বার বা পাসওয়ার্ড ভুল!", "error");
       }
     } else {
-      if (userEnteredOtp !== generatedOtp) {
-        showToast("ভুল OTP দিয়েছেন!", "error");
-        return;
+      if (users[tempPhone]) {
+        showToast("এই নাম্বার আগে থেকেই আছে", "error");
+      } else {
+        users[tempPhone] = tempPassword;
+        localStorage.setItem(USERS_KEY, JSON.stringify(users));
+        localStorage.setItem('logged_in_phone', tempPhone);
+        localStorage.setItem('is_admin', 'false');
+        setUserPhone(tempPhone);
+        setIsAdmin(false);
+        showToast("রেজিস্ট্রেশন সফল!");
       }
-      users[fullPhone] = tempPassword;
-      localStorage.setItem(USERS_KEY, JSON.stringify(users));
-      
-      const profiles = JSON.parse(localStorage.getItem(PROFILES_KEY) || '{}');
-      profiles[fullPhone] = { name: tempName };
-      localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
-
-      localStorage.setItem('logged_in_phone', fullPhone);
-      localStorage.setItem('is_admin', 'false');
-      setUserPhone(fullPhone);
-      setIsAdmin(false);
-      showToast("রেজিস্ট্রেশন সফল!");
     }
   };
 
@@ -231,8 +113,6 @@ const App: React.FC = () => {
       setIsAdminTab(false);
       setTempPassword('');
       setTempPhone('');
-      setTempName('');
-      setOtpSent(false);
       setActiveTab('dashboard');
       showToast("সফলভাবে লগআউট হয়েছে");
     }
@@ -248,70 +128,6 @@ const App: React.FC = () => {
       }
     } else {
       alert("আপনার ব্রাউজারের থ্রি-ডট মেনু থেকে 'Install App' বা 'Add to Home Screen' বাটনে ক্লিক করে এন্ড্রয়েড অ্যাপ হিসেবে ব্যবহার করুন।");
-    }
-  };
-
-  const handleShareReport = async () => {
-    const doc = new jsPDF();
-    const dateStr = new Date().toLocaleDateString('bn-BD');
-    const profiles = JSON.parse(localStorage.getItem(PROFILES_KEY) || '{}');
-    const messName = userPhone ? (profiles[userPhone]?.name || 'মেছ হিসাব রিপোর্ট') : 'মেছ হিসাব রিপোর্ট';
-
-    // PDF Content
-    doc.setFontSize(22);
-    doc.text(messName, 105, 20, { align: 'center' });
-    doc.setFontSize(12);
-    doc.text(`তারিখ: ${dateStr}`, 105, 30, { align: 'center' });
-    doc.line(20, 35, 190, 35);
-
-    doc.setFontSize(14);
-    doc.text('সারসংক্ষেপ:', 20, 45);
-    doc.setFontSize(11);
-    doc.text(`মোট বাজার খরচ: ${formatCurrency(summary.totalSharedExpense, currencyCode)}`, 25, 55);
-    doc.text(`মোট ব্যক্তিগত খরচ: ${formatCurrency(summary.totalPersonalExpense, currencyCode)}`, 25, 62);
-    doc.text(`মোট জমা: ${formatCurrency(summary.totalPayments, currencyCode)}`, 25, 69);
-    doc.text(`দোকানে বাকি: ${formatCurrency(summary.grandTotalDebt, currencyCode)}`, 25, 76);
-
-    doc.setFontSize(14);
-    doc.text('মেম্বার ব্যালেন্স:', 20, 90);
-    let y = 100;
-    summary.memberBalances.forEach((mb) => {
-      doc.setFontSize(11);
-      doc.text(mb.member.name, 25, y);
-      const balance = formatCurrency(mb.netBalance, currencyCode);
-      doc.text(balance, 185, y, { align: 'right' });
-      y += 8;
-      if (y > 270) {
-        doc.addPage();
-        y = 20;
-      }
-    });
-
-    // Developer Credits
-    const footerY = 280;
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text('Generated by: ব্যাচেলর দের মেছের হিসাব', 105, footerY, { align: 'center' });
-    doc.setTextColor(0, 0, 255);
-    doc.text('Developer: Billal | FB: fb.com/billal8795', 105, footerY + 7, { align: 'center' });
-
-    const pdfBlob = doc.output('blob');
-    const fileName = `Mess_Report_${new Date().toISOString().split('T')[0]}.pdf`;
-
-    if (navigator.share) {
-      const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
-      try {
-        await navigator.share({
-          files: [file],
-          title: 'মেছের হিসাব রিপোর্ট',
-          text: `তারিখ: ${dateStr} এর মেছ খরচ ও জমা হিসাব। ডেভলপার: বিল্লাল (fb.com/billal8795)`
-        });
-      } catch (err) {
-        doc.save(fileName);
-      }
-    } else {
-      doc.save(fileName);
-      showToast("পিডিএফ ডাউনলোড হয়েছে");
     }
   };
 
@@ -613,123 +429,31 @@ const App: React.FC = () => {
         <div className="relative z-10 space-y-5 max-w-sm mx-auto w-full py-8">
           <h2 className="text-xl font-black tracking-tight mb-2">ব্যাচেলর দের মেছের হিসাব</h2>
           <div className="w-16 h-16 bg-white rounded-2xl mx-auto flex items-center justify-center text-3xl shadow-2xl mb-2">🏪</div>
-          <h1 className="text-lg font-bold tracking-tight opacity-90">
-            {isAdminTab ? 'এডমিন লগিন' : (isLoginMode ? 'ইউজার লগইন' : 'নতুন অ্যাকাউন্ট')}
-          </h1>
-          
+          <h1 className="text-lg font-bold tracking-tight opacity-90">{isAdminTab ? 'এডমিন লগিন' : (isLoginMode ? 'ইউজার লগইন' : 'নতুন অ্যাকাউন্ট')}</h1>
           <form onSubmit={handleAuth} className="space-y-3">
-            {!isAdminTab && (
-              <div className="space-y-3">
-                {/* User Name field added for Registration */}
-                {!isLoginMode && (
-                  <input 
-                    type="text" 
-                    placeholder="আপনার নাম / মেছের নাম" 
-                    className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none focus:bg-white focus:text-indigo-900 transition-all" 
-                    value={tempName} 
-                    onChange={e => setTempName(e.target.value)} 
-                    disabled={otpSent}
-                  />
-                )}
-                
-                <div className="flex gap-2">
-                  <div className="relative">
-                    <select 
-                      className="h-full bg-white/10 border-2 border-white/20 rounded-xl px-2 py-3 text-sm font-bold appearance-none outline-none focus:bg-white focus:text-indigo-900 transition-all cursor-pointer"
-                      value={selectedCountry.name}
-                      onChange={(e) => setSelectedCountry(COUNTRIES.find(c => c.name === e.target.value) || COUNTRIES[0])}
-                    >
-                      {COUNTRIES.map(c => (
-                        <option key={c.name} value={c.name}>{c.flag} {c.code}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <input 
-                    type="tel" 
-                    placeholder="মোবাইল নাম্বার" 
-                    className="flex-1 bg-white/10 border-2 border-white/20 rounded-xl px-4 py-3 text-md font-bold outline-none focus:bg-white focus:text-indigo-900 transition-all" 
-                    value={tempPhone} 
-                    onChange={e => setTempPhone(e.target.value)} 
-                    disabled={otpSent && !isLoginMode}
-                  />
-                </div>
-                
-                <input 
-                  type="password" 
-                  placeholder="পাসওয়ার্ড" 
-                  className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none focus:bg-white focus:text-indigo-900 transition-all" 
-                  value={tempPassword} 
-                  onChange={e => setTempPassword(e.target.value)} 
-                  disabled={otpSent && !isLoginMode}
-                />
-
-                {!isLoginMode && otpSent && (
-                  <div className="animate-in slide-in-from-top-2">
-                    <input 
-                      type="number" 
-                      placeholder="৪ সংখ্যার OTP দিন" 
-                      className="w-full bg-emerald-500/20 border-2 border-emerald-500/40 rounded-xl px-5 py-3 text-md font-black text-center outline-none focus:bg-white focus:text-indigo-900 transition-all" 
-                      value={userEnteredOtp} 
-                      onChange={e => setUserEnteredOtp(e.target.value)} 
-                    />
-                    <p className="text-[10px] text-emerald-300 font-bold mt-2">আপনার ওটিপি: {generatedOtp} (পরীক্ষামূলক)</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {isAdminTab && (
-              <input 
-                type="password" 
-                placeholder="এডমিন পাসওয়ার্ড" 
-                className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" 
-                value={tempPassword} 
-                onChange={e => setTempPassword(e.target.value)} 
-              />
-            )}
-
-            {isAdminTab ? (
-              <button className="w-full bg-white text-indigo-900 font-black py-3.5 rounded-xl text-md shadow-xl active:scale-95 transition-all">
-                প্রবেশ করুন
-              </button>
-            ) : !isLoginMode && !otpSent ? (
-              <button 
-                type="button" 
-                onClick={handleSendOtp}
-                className="w-full bg-emerald-500 text-white font-black py-3.5 rounded-xl text-md shadow-xl active:scale-95 transition-all"
-              >
-                OTP পাঠান
-              </button>
-            ) : (
-              <button className="w-full bg-white text-indigo-900 font-black py-3.5 rounded-xl text-md shadow-xl active:scale-95 transition-all">
-                {isLoginMode ? 'প্রবেশ করুন' : 'অ্যাকাউন্ট নিশ্চিত করুন'}
-              </button>
-            )}
+            {!isAdminTab && <input type="tel" placeholder="মোবাইল নাম্বার" className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" value={tempPhone} onChange={e => setTempPhone(e.target.value)} />}
+            <input type="password" placeholder={isAdminTab ? "এডমিন পাসওয়ার্ড" : "পাসওয়ার্ড"} className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" value={tempPassword} onChange={e => setTempPassword(e.target.value)} />
+            <button className="w-full bg-white text-indigo-900 font-black py-3.5 rounded-xl text-md shadow-xl active:scale-95 transition-all">প্রবেশ করুন</button>
           </form>
-
           <div className="flex flex-col gap-3 items-center">
             {!isAdminTab ? (
               <>
-                <button onClick={() => { setIsLoginMode(!isLoginMode); setOtpSent(false); setTempName(''); }} className="text-indigo-200 font-bold text-sm underline">
-                  {isLoginMode ? 'নতুন মেছ? অ্যাকাউন্ট খুলুন' : 'আগের মেছ? লগইন করুন'}
-                </button>
+                <button onClick={() => setIsLoginMode(!isLoginMode)} className="text-indigo-200 font-bold text-sm underline">{isLoginMode ? 'নতুন মেছ? অ্যাকাউন্ট খুলুন' : 'আগের মেছ? লগইন করুন'}</button>
                 <button onClick={() => setIsAdminTab(true)} className="text-white/40 font-black text-[10px] uppercase tracking-widest bg-white/5 px-4 py-2 rounded-full mt-2">এডমিন লগিন</button>
               </>
             ) : (
               <button onClick={() => setIsAdminTab(false)} className="text-indigo-200 font-bold text-sm underline">ইউজার লগইনে ফিরে যান</button>
             )}
           </div>
-          
           <div className="pt-8 flex flex-col items-center gap-3">
             <button onClick={handleInstallApp} className="group flex items-center gap-4 bg-indigo-600 border border-white/20 hover:bg-indigo-500 transition-all px-8 py-3 rounded-2xl shadow-xl active:scale-95">
-              <div className="bg-white/10 p-2.5 rounded-xl">
-                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M17.523 15.3414L19.5441 18.8142C19.7431 19.1561 19.626 19.5932 19.2825 19.7922C18.939 19.9912 18.502 19.8741 18.303 19.5306L16.2415 15.9922C15.0001 16.634 13.5653 17 12 17C10.4347 17 9 16.634 7.7585 15.9922L5.69697 19.5306C5.498 19.8741 5.06094 19.9912 4.71746 19.7922C4.37397 19.5932 4.25688 19.1561 4.45591 18.8142L6.47697 15.3414C4.10319 13.8863 2.5 11.3323 2.5 8.39999C2.5 8.08244 2.51863 7.76922 2.55469 7.46143H21.4453C21.4814 7.76922 21.5 8.08244 21.5 8.39999C21.5 11.3323 19.8968 13.8863 17.523 15.3414ZM7 11.5C7.55228 11.5 8 11.0523 8 10.5C8 9.94772 7.55228 9.5 7 9.5C6.44772 9.5 6 9.94772 6 10.5C6 11.0523 6.44772 11.5 7 11.5ZM17 11.5C17.5523 11.5 18 11.0523 18 10.5C18 9.94772 17.5523 9.5 17 9.5C16.4477 9.5 16 9.94772 16 10.5C16 11.0523 16.4477 11.5 17 11.5ZM15.5 3.5C15.5 3.5 15.5 3.5 15.5 3.5C15.5 3.5 15.5 3.5 15.5 3.5ZM15.8285 2.17157L17.2427 0.757359C17.5356 0.464466 18.0104 0.464466 18.3033 0.757359C18.5962 1.05025 18.5962 1.52513 18.3033 1.81802L17.1517 2.9696C18.3562 3.90595 19.3412 5.09337 20.0381 6.46143H3.96191C4.65882 5.09337 5.64379 3.90595 6.84831 2.9696L5.6967 1.81802C5.40381 1.52513 5.40381 1.05025 5.6967 0.757359C5.98959 0.464466 6.46447 0.464466 6.75736 0.757359L8.17157 2.17157C9.3375 1.41113 10.6385 1 12 1C13.3615 1 14.6625 1.41113 15.8285 2.17157Z"/></svg>
-              </div>
+              <div className="bg-white/10 p-2.5 rounded-xl"><svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M17.523 15.3414L19.5441 18.8142C19.7431 19.1561 19.626 19.5932 19.2825 19.7922C18.939 19.9912 18.502 19.8741 18.303 19.5306L16.2415 15.9922C15.0001 16.634 13.5653 17 12 17C10.4347 17 9 16.634 7.7585 15.9922L5.69697 19.5306C5.498 19.8741 5.06094 19.9912 4.71746 19.7922C4.37397 19.5932 4.25688 19.1561 4.45591 18.8142L6.47697 15.3414C4.10319 13.8863 2.5 11.3323 2.5 8.39999C2.5 8.08244 2.51863 7.76922 2.55469 7.46143H21.4453C21.4814 7.76922 21.5 8.08244 21.5 8.39999C21.5 11.3323 19.8968 13.8863 17.523 15.3414ZM7 11.5C7.55228 11.5 8 11.0523 8 10.5C8 9.94772 7.55228 9.5 7 9.5C6.44772 9.5 6 9.94772 6 10.5C6 11.0523 6.44772 11.5 7 11.5ZM17 11.5C17.5523 11.5 18 11.0523 18 10.5C18 9.94772 17.5523 9.5 17 9.5C16.4477 9.5 16 9.94772 16 10.5C16 11.0523 16.4477 11.5 17 11.5ZM15.5 3.5C15.5 3.5 15.5 3.5 15.5 3.5C15.5 3.5 15.5 3.5 15.5 3.5ZM15.8285 2.17157L17.2427 0.757359C17.5356 0.464466 18.0104 0.464466 18.3033 0.757359C18.5962 1.05025 18.5962 1.52513 18.3033 1.81802L17.1517 2.9696C18.3562 3.90595 19.3412 5.09337 20.0381 6.46143H3.96191C4.65882 5.09337 5.64379 3.90595 6.84831 2.9696L5.6967 1.81802C5.40381 1.52513 5.40381 1.05025 5.6967 0.757359C5.98959 0.464466 6.46447 0.464466 6.75736 0.757359L8.17157 2.17157C9.3375 1.41113 10.6385 1 12 1C13.3615 1 14.6625 1.41113 15.8285 2.17157Z"/></svg></div>
               <div className="text-left border-l border-white/20 pl-4">
                 <p className="text-[10px] font-black uppercase text-indigo-200 mb-1">এন্ড্রয়েড অ্যাপ</p>
                 <p className="text-[14px] font-black text-white">ইনস্টল করুন</p>
               </div>
             </button>
+            <p className="text-[10px] text-indigo-300/60 font-medium max-w-[200px] leading-tight mt-1">এই অ্যাপটি একবার ইনস্টল করলে আপনি অফলাইনেও ব্যবহার করতে পারবেন।</p>
           </div>
         </div>
         {toast && (
@@ -798,6 +522,26 @@ const App: React.FC = () => {
                     ))}
                   </div>
                 </div>
+                <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+                  <div className="flex justify-between items-center mb-4"><h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">সাম্প্রতিক নাস্তা জমা</h3>
+                  {expenses.some(e => e.description === BREAKFAST_DESC) && <button onClick={clearAllBreakfast} className="text-[9px] font-black uppercase text-rose-500 bg-rose-50 px-2 py-1 rounded-lg border border-rose-100">সব মুছুন</button>}</div>
+                  <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+                    {expenses.filter(e => e.description === BREAKFAST_DESC).map(exp => (
+                      <div key={exp.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <div className="min-w-0">
+                          <p className="font-black text-slate-700 text-[11px] truncate">{members.find(m => m.id === exp.targetMemberId)?.name || 'অজানা'}</p>
+                          <p className="text-[7px] text-slate-400 font-bold">{new Date(exp.date).toLocaleDateString('bn-BD')} • {new Date(exp.date).toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' })}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-emerald-600 text-[11px]">{formatCurrency(exp.amount, currencyCode)}</span>
+                          <button onClick={() => deleteExpense(exp.id)} className="text-slate-300 hover:text-rose-500 p-1.5 transition-colors">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
             {activeTab === 'history' && (
@@ -814,7 +558,7 @@ const App: React.FC = () => {
                         <div className="flex items-center gap-2 mt-0.5">
                           <p className="text-[8px] text-slate-400 font-bold uppercase">{new Date(exp.date).toLocaleDateString('bn-BD')}</p>
                           <span className="text-[8px] text-slate-300">•</span>
-                          <p className="text-[8px] text-indigo-50 font-black uppercase tracking-wider">{memberName}</p>
+                          <p className="text-[8px] text-indigo-500 font-black uppercase tracking-wider">{memberName}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
@@ -828,17 +572,6 @@ const App: React.FC = () => {
             )}
             {activeTab === 'summary' && (
               <div className="space-y-5">
-                {/* PDF Share Button Added Here */}
-                <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-                   <button 
-                    onClick={handleShareReport}
-                    className="w-full py-4 rounded-xl bg-emerald-600 text-white font-black text-[12px] uppercase shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
-                    হিসাব শেয়ার করুন (PDF)
-                  </button>
-                </div>
-
                 <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
                   <h3 className="font-black text-[10px] uppercase tracking-wider text-slate-400 mb-3">মেম্বার ম্যানেজমেন্ট</h3>
                   <div className="flex gap-2 mb-4">
@@ -856,6 +589,21 @@ const App: React.FC = () => {
                         </div>
                       </div>
                     ))}
+
+                    {inactiveMembers.length > 0 && (
+                      <div className="space-y-2 pt-4 border-t border-slate-100 mt-4">
+                        <p className="text-[9px] font-black text-rose-500 uppercase px-1">নিষ্ক্রিয় মেম্বার</p>
+                        {inactiveMembers.map(m => (
+                          <div key={m.id} className="flex items-center justify-between p-3 bg-slate-100 rounded-xl border border-slate-200 opacity-70">
+                            <span className="font-black text-slate-500 text-[12px] line-through">{m.name}</span>
+                            <div className="flex gap-1.5">
+                              <button onClick={() => reactivateMember(m.id)} className="text-indigo-600 bg-indigo-50 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase">সক্রিয় করুন</button>
+                              <button onClick={() => deleteMemberRecord(m.id)} className="text-rose-400 p-1.5 hover:bg-rose-50 rounded-lg"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <button onClick={handleLogout} className="w-full py-4 rounded-xl bg-rose-50 text-rose-600 font-black text-[11px] uppercase border border-rose-100 shadow-sm">লগআউট ({userPhone})</button>
