@@ -564,7 +564,11 @@ const App: React.FC = () => {
               />
             )}
 
-            {!isLoginMode && !otpSent ? (
+            {isAdminTab ? (
+              <button className="w-full bg-white text-indigo-900 font-black py-3.5 rounded-xl text-md shadow-xl active:scale-95 transition-all">
+                প্রবেশ করুন
+              </button>
+            ) : !isLoginMode && !otpSent ? (
               <button 
                 type="button" 
                 onClick={handleSendOtp}
