@@ -8,16 +8,46 @@ const APP_PREFIX = 'mess_tracker_v3_';
 const USERS_KEY = 'mess_tracker_auth_users';
 const BREAKFAST_DESC = "সকালের নাস্তা জমা";
 
+// Expanded country list with validation lengths
 const COUNTRIES = [
-  { name: 'Bangladesh', code: '+880', flag: '🇧🇩' },
-  { name: 'Saudi Arabia', code: '+966', flag: '🇸🇦' },
-  { name: 'UAE', code: '+971', flag: '🇦🇪' },
-  { name: 'Qatar', code: '+974', flag: '🇶🇦' },
-  { name: 'Oman', code: '+968', flag: '🇴🇲' },
-  { name: 'Kuwait', code: '+965', flag: '🇰🇼' },
-  { name: 'Bahrain', code: '+973', flag: '🇧🇭' },
-  { name: 'Malaysia', code: '+60', flag: '🇲🇾' },
-];
+  { name: 'Bangladesh', code: '+880', flag: '🇧🇩', length: 11 },
+  { name: 'Saudi Arabia', code: '+966', flag: '🇸🇦', length: 9 },
+  { name: 'UAE', code: '+971', flag: '🇦🇪', length: 9 },
+  { name: 'Qatar', code: '+974', flag: '🇶🇦', length: 8 },
+  { name: 'Oman', code: '+968', flag: '🇴🇲', length: 8 },
+  { name: 'Kuwait', code: '+965', flag: '🇰🇼', length: 8 },
+  { name: 'Bahrain', code: '+973', flag: '🇧🇭', length: 8 },
+  { name: 'Malaysia', code: '+60', flag: '🇲🇾', length: 9 },
+  { name: 'India', code: '+91', flag: '🇮🇳', length: 10 },
+  { name: 'Pakistan', code: '+92', flag: '🇵🇰', length: 10 },
+  { name: 'Nepal', code: '+977', flag: '🇳🇵', length: 10 },
+  { name: 'Sri Lanka', code: '+94', flag: '🇱🇰', length: 9 },
+  { name: 'USA', code: '+1', flag: '🇺🇸', length: 10 },
+  { name: 'Canada', code: '+1', flag: '🇨🇦', length: 10 },
+  { name: 'UK', code: '+44', flag: '🇬🇧', length: 10 },
+  { name: 'Italy', code: '+39', flag: '🇮🇹', length: 10 },
+  { name: 'Singapore', code: '+65', flag: '🇸🇬', length: 8 },
+  { name: 'Maldives', code: '+960', flag: '🇲🇻', length: 7 },
+  { name: 'Lebanon', code: '+961', flag: '🇱🇧', length: 8 },
+  { name: 'Jordan', code: '+962', flag: '🇯🇴', length: 9 },
+  { name: 'South Korea', code: '+82', flag: '🇰🇷', length: 10 },
+  { name: 'Japan', code: '+81', flag: '🇯🇵', length: 10 },
+  { name: 'France', code: '+33', flag: '🇫🇷', length: 9 },
+  { name: 'Germany', code: '+49', flag: '🇩🇪', length: 11 },
+  { name: 'Australia', code: '+61', flag: '🇦🇺', length: 9 },
+  { name: 'Spain', code: '+34', flag: '🇪🇸', length: 9 },
+  { name: 'Portugal', code: '+351', flag: '🇵🇹', length: 9 },
+  { name: 'South Africa', code: '+27', flag: '🇿🇦', length: 9 },
+  { name: 'Egypt', code: '+20', flag: '🇪🇬', length: 10 },
+  { name: 'Turkey', code: '+90', flag: '🇹🇷', length: 10 },
+  { name: 'Greece', code: '+30', flag: '🇬🇷', length: 10 },
+  { name: 'Mauritius', code: '+230', flag: '🇲🇺', length: 8 },
+  { name: 'Brunei', code: '+673', flag: '🇧🇳', length: 7 },
+  { name: 'Hong Kong', code: '+852', flag: '🇭🇰', length: 8 },
+  { name: 'Vietnam', code: '+84', flag: '🇻🇳', length: 9 },
+  { name: 'Thailand', code: '+66', flag: '🇹🇭', length: 9 },
+  { name: 'Switzerland', code: '+41', flag: '🇨🇭', length: 9 },
+].sort((a, b) => a.name.localeCompare(b.name));
 
 const App: React.FC = () => {
   const [userPhone, setUserPhone] = useState<string | null>(() => localStorage.getItem('logged_in_phone'));
@@ -26,7 +56,7 @@ const App: React.FC = () => {
   const [isAdminTab, setIsAdminTab] = useState(false);
   
   // Auth States
-  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[1]); // Default Saudi
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES.find(c => c.name === 'Saudi Arabia') || COUNTRIES[0]); 
   const [tempPhone, setTempPhone] = useState('');
   const [tempPassword, setTempPassword] = useState('');
   const [otpSent, setOtpSent] = useState(false);
@@ -80,15 +110,25 @@ const App: React.FC = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
+  const validatePhoneNumber = () => {
+    if (tempPhone.length !== selectedCountry.length) {
+      showToast(`${selectedCountry.name} এর জন্য ${selectedCountry.length} সংখ্যার সঠিক নাম্বার দিন`, "error");
+      return false;
+    }
+    return true;
+  };
+
   const handleSendOtp = () => {
-    if (tempPhone.length < 6 || tempPassword.length < 4) {
-      showToast("সঠিক নাম্বার ও পাসওয়ার্ড দিন", "error");
+    if (!validatePhoneNumber()) return;
+    
+    if (tempPassword.length < 4) {
+      showToast("পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের দিন", "error");
       return;
     }
+
     const storedUsersRaw = localStorage.getItem(USERS_KEY);
     const users = storedUsersRaw ? JSON.parse(storedUsersRaw) : {};
     
-    // Check if user exists with or without country code
     if (users[fullPhone] || users[tempPhone]) {
       showToast("এই নাম্বার আগে থেকেই আছে", "error");
       return;
@@ -115,6 +155,8 @@ const App: React.FC = () => {
       return;
     }
 
+    if (!validatePhoneNumber()) return;
+
     const storedUsersRaw = localStorage.getItem(USERS_KEY);
     const users = storedUsersRaw ? JSON.parse(storedUsersRaw) : {};
 
@@ -122,28 +164,22 @@ const App: React.FC = () => {
       let finalLoginPhone = fullPhone;
       let loginSuccess = false;
 
-      // 1. Check with country code
       if (users[fullPhone] && users[fullPhone] === tempPassword) {
         loginSuccess = true;
       } 
-      // 2. Check without country code (Compatibility for old users)
       else if (users[tempPhone] && users[tempPhone] === tempPassword) {
-        // Migrate old data to new key with country code
         const oldPhone = tempPhone;
         users[fullPhone] = users[oldPhone];
         delete users[oldPhone];
         
-        // Migrate mess data
         const oldMembers = localStorage.getItem(`${APP_PREFIX}${oldPhone}_members`);
         const oldExpenses = localStorage.getItem(`${APP_PREFIX}${oldPhone}_expenses`);
         if (oldMembers) localStorage.setItem(`${APP_PREFIX}${fullPhone}_members`, oldMembers);
         if (oldExpenses) localStorage.setItem(`${APP_PREFIX}${fullPhone}_expenses`, oldExpenses);
         
-        // Remove old keys
         localStorage.removeItem(`${APP_PREFIX}${oldPhone}_members`);
         localStorage.removeItem(`${APP_PREFIX}${oldPhone}_expenses`);
         
-        // Update users list in disk
         localStorage.setItem(USERS_KEY, JSON.stringify(users));
         
         loginSuccess = true;
@@ -160,7 +196,6 @@ const App: React.FC = () => {
         showToast("নাম্বার বা পাসওয়ার্ড ভুল!", "error");
       }
     } else {
-      // Signup with OTP check
       if (userEnteredOtp !== generatedOtp) {
         showToast("ভুল OTP দিয়েছেন!", "error");
         return;
