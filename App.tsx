@@ -88,7 +88,8 @@ const App: React.FC = () => {
     const storedUsersRaw = localStorage.getItem(USERS_KEY);
     const users = storedUsersRaw ? JSON.parse(storedUsersRaw) : {};
     
-    if (users[fullPhone]) {
+    // Check if user exists with or without country code
+    if (users[fullPhone] || users[tempPhone]) {
       showToast("এই নাম্বার আগে থেকেই আছে", "error");
       return;
     }
@@ -96,7 +97,6 @@ const App: React.FC = () => {
     const newOtp = Math.floor(1000 + Math.random() * 9000).toString();
     setGeneratedOtp(newOtp);
     setOtpSent(true);
-    // Simulating SMS sending
     alert(`আপনার রেজিস্ট্রেশন কোড (OTP): ${newOtp}`);
     showToast("আপনার মোবাইলে OTP পাঠানো হয়েছে", "success");
   };
@@ -119,10 +119,41 @@ const App: React.FC = () => {
     const users = storedUsersRaw ? JSON.parse(storedUsersRaw) : {};
 
     if (isLoginMode) {
+      let finalLoginPhone = fullPhone;
+      let loginSuccess = false;
+
+      // 1. Check with country code
       if (users[fullPhone] && users[fullPhone] === tempPassword) {
-        localStorage.setItem('logged_in_phone', fullPhone);
+        loginSuccess = true;
+      } 
+      // 2. Check without country code (Compatibility for old users)
+      else if (users[tempPhone] && users[tempPhone] === tempPassword) {
+        // Migrate old data to new key with country code
+        const oldPhone = tempPhone;
+        users[fullPhone] = users[oldPhone];
+        delete users[oldPhone];
+        
+        // Migrate mess data
+        const oldMembers = localStorage.getItem(`${APP_PREFIX}${oldPhone}_members`);
+        const oldExpenses = localStorage.getItem(`${APP_PREFIX}${oldPhone}_expenses`);
+        if (oldMembers) localStorage.setItem(`${APP_PREFIX}${fullPhone}_members`, oldMembers);
+        if (oldExpenses) localStorage.setItem(`${APP_PREFIX}${fullPhone}_expenses`, oldExpenses);
+        
+        // Remove old keys
+        localStorage.removeItem(`${APP_PREFIX}${oldPhone}_members`);
+        localStorage.removeItem(`${APP_PREFIX}${oldPhone}_expenses`);
+        
+        // Update users list in disk
+        localStorage.setItem(USERS_KEY, JSON.stringify(users));
+        
+        loginSuccess = true;
+        finalLoginPhone = fullPhone;
+      }
+
+      if (loginSuccess) {
+        localStorage.setItem('logged_in_phone', finalLoginPhone);
         localStorage.setItem('is_admin', 'false');
-        setUserPhone(fullPhone);
+        setUserPhone(finalLoginPhone);
         setIsAdmin(false);
         showToast("লগইন সফল!");
       } else {
@@ -477,7 +508,6 @@ const App: React.FC = () => {
           <form onSubmit={handleAuth} className="space-y-3">
             {!isAdminTab && (
               <div className="space-y-3">
-                {/* Country and Phone Section */}
                 <div className="flex gap-2">
                   <div className="relative">
                     <select 
@@ -500,7 +530,6 @@ const App: React.FC = () => {
                   />
                 </div>
                 
-                {/* Password Section */}
                 <input 
                   type="password" 
                   placeholder="পাসওয়ার্ড" 
@@ -510,7 +539,6 @@ const App: React.FC = () => {
                   disabled={otpSent && !isLoginMode}
                 />
 
-                {/* OTP Section for Signup */}
                 {!isLoginMode && otpSent && (
                   <div className="animate-in slide-in-from-top-2">
                     <input 
