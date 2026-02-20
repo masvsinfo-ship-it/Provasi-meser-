@@ -35,6 +35,26 @@ const MemberReport: React.FC<MemberReportProps> = ({ memberBalance, expenses, cu
         </div>
       </div>
 
+      {/* Summary Stats - Moved to top */}
+      <div className="grid grid-cols-4 gap-4 mb-8">
+        <div className="bg-white border border-slate-100 rounded-xl p-4 text-center shadow-sm">
+          <p className="text-[10px] font-black text-slate-400 uppercase mb-1">মোট জমা</p>
+          <p className="text-lg font-black text-emerald-600">{formatCurrency(memberBalance.paid, currencyCode)}</p>
+        </div>
+        <div className="bg-white border border-slate-100 rounded-xl p-4 text-center shadow-sm">
+          <p className="text-[10px] font-black text-slate-400 uppercase mb-1">বাজার শেয়ার</p>
+          <p className="text-lg font-black text-indigo-600">{formatCurrency(memberBalance.sharedShare, currencyCode)}</p>
+        </div>
+        <div className="bg-white border border-slate-100 rounded-xl p-4 text-center shadow-sm">
+          <p className="text-[10px] font-black text-slate-400 uppercase mb-1">ব্যক্তিগত খরচ</p>
+          <p className="text-lg font-black text-rose-600">{formatCurrency(memberBalance.personalTotal, currencyCode)}</p>
+        </div>
+        <div className="bg-white border border-slate-100 rounded-xl p-4 text-center shadow-sm">
+          <p className="text-[10px] font-black text-slate-400 uppercase mb-1">নাস্তা জমা</p>
+          <p className="text-lg font-black text-amber-600">{formatCurrency(memberBalance.breakfastPaid, currencyCode)}</p>
+        </div>
+      </div>
+
       {/* Member Info Card */}
       <div className="grid grid-cols-2 gap-8 mb-8">
         <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 flex items-center gap-4">
@@ -56,26 +76,6 @@ const MemberReport: React.FC<MemberReportProps> = ({ memberBalance, expenses, cu
           <p className={`text-[10px] font-bold mt-2 ${memberBalance.netBalance < 0 ? 'text-rose-200' : 'text-emerald-200'}`}>
             {memberBalance.netBalance < 0 ? 'মেছ আপনার কাছে পাবে' : 'আপনি মেছের কাছে পাবেন'}
           </p>
-        </div>
-      </div>
-
-      {/* Summary Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
-        <div className="bg-white border border-slate-100 rounded-xl p-4 text-center shadow-sm">
-          <p className="text-[10px] font-black text-slate-400 uppercase mb-1">মোট জমা</p>
-          <p className="text-lg font-black text-emerald-600">{formatCurrency(memberBalance.paid, currencyCode)}</p>
-        </div>
-        <div className="bg-white border border-slate-100 rounded-xl p-4 text-center shadow-sm">
-          <p className="text-[10px] font-black text-slate-400 uppercase mb-1">বাজার শেয়ার</p>
-          <p className="text-lg font-black text-indigo-600">{formatCurrency(memberBalance.sharedShare, currencyCode)}</p>
-        </div>
-        <div className="bg-white border border-slate-100 rounded-xl p-4 text-center shadow-sm">
-          <p className="text-[10px] font-black text-slate-400 uppercase mb-1">ব্যক্তিগত খরচ</p>
-          <p className="text-lg font-black text-rose-600">{formatCurrency(memberBalance.personalTotal, currencyCode)}</p>
-        </div>
-        <div className="bg-white border border-slate-100 rounded-xl p-4 text-center shadow-sm">
-          <p className="text-[10px] font-black text-slate-400 uppercase mb-1">নাস্তা জমা</p>
-          <p className="text-lg font-black text-amber-600">{formatCurrency(memberBalance.breakfastPaid, currencyCode)}</p>
         </div>
       </div>
 
@@ -132,6 +132,13 @@ const MemberReport: React.FC<MemberReportProps> = ({ memberBalance, expenses, cu
 
       {/* Footer */}
       <div className="mt-12 pt-8 border-t border-slate-200 text-center">
+        <div className="flex flex-col items-center gap-2 mb-4">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ডেবলপার এর সাথে যোগাযোগ করুন</p>
+          <div className="flex gap-4">
+            <p className="text-[10px] font-bold text-blue-600">Facebook: fb.com/billal8795</p>
+            <p className="text-[10px] font-bold text-emerald-600">WhatsApp: +8801735308795</p>
+          </div>
+        </div>
         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
           ধন্যবাদ • ব্যাচেলর দের মেছের হিসাব
         </p>

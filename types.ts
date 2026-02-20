@@ -45,3 +45,10 @@ export interface MessSummary {
   averagePerPerson: number;
   memberBalances: MemberBalance[];
 }
+
+export interface UserProfile {
+  phone: string;
+  name: string;
+  password: string;
+  avatar?: string;
+}

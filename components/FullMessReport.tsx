@@ -127,6 +127,13 @@ const FullMessReport: React.FC<FullMessReportProps> = ({ summary, expenses, curr
 
       {/* Footer */}
       <div className="mt-12 pt-8 border-t border-slate-200 text-center">
+        <div className="flex flex-col items-center gap-2 mb-4">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ডেবলপার এর সাথে যোগাযোগ করুন</p>
+          <div className="flex gap-4">
+            <p className="text-[10px] font-bold text-blue-600">Facebook: fb.com/billal8795</p>
+            <p className="text-[10px] font-bold text-emerald-600">WhatsApp: +8801735308795</p>
+          </div>
+        </div>
         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
           ধন্যবাদ • ব্যাচেলর দের মেছের হিসাব
         </p>

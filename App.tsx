@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Member, Expense, ExpenseType, MessSummary, MemberBalance } from './types.ts';
+import { Member, Expense, ExpenseType, MessSummary, MemberBalance, UserProfile } from './types.ts';
 import { calculateMessSummary, formatCurrency, getAutoDetectedCurrency } from './utils/calculations.ts';
 import Layout from './components/Layout.tsx';
 import { geminiService } from './services/geminiService.ts';
@@ -17,11 +17,14 @@ const App: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState<boolean>(() => localStorage.getItem('is_admin') === 'true');
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [isAdminTab, setIsAdminTab] = useState(false);
+  const [tempName, setTempName] = useState('');
   const [tempPhone, setTempPhone] = useState('');
   const [tempPassword, setTempPassword] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'warning' } | null>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
 
   const [members, setMembers] = useState<Member[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -34,6 +37,20 @@ const App: React.FC = () => {
   const [isGeneratingFullPdf, setIsGeneratingFullPdf] = useState(false);
   const [pdfMemberId, setPdfMemberId] = useState<string | null>(null);
   const reportRef = useRef<HTMLDivElement>(null);
+
+  const [editName, setEditName] = useState('');
+  const [editPassword, setEditPassword] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editAvatar, setEditAvatar] = useState('');
+
+  useEffect(() => {
+    if (currentUser) {
+      setEditName(currentUser.name);
+      setEditPassword(currentUser.password);
+      setEditPhone(currentUser.phone);
+      setEditAvatar(currentUser.avatar || '');
+    }
+  }, [currentUser]);
   
   useEffect(() => {
     if (userPhone) {
@@ -41,9 +58,26 @@ const App: React.FC = () => {
       const savedExpenses = localStorage.getItem(`${APP_PREFIX}${userPhone}_expenses`);
       setMembers(savedMembers ? JSON.parse(savedMembers) : []);
       setExpenses(savedExpenses ? JSON.parse(savedExpenses) : []);
+
+      // Load current user profile
+      const storedUsersRaw = localStorage.getItem(USERS_KEY);
+      if (storedUsersRaw) {
+        const users = JSON.parse(storedUsersRaw);
+        const userData = users[userPhone];
+        if (userData) {
+          // Handle migration from old string password format to object format
+          if (typeof userData === 'string') {
+            const profile: UserProfile = { phone: userPhone, password: userData, name: 'User' };
+            setCurrentUser(profile);
+          } else {
+            setCurrentUser({ ...userData, phone: userPhone });
+          }
+        }
+      }
     } else {
       setMembers([]);
       setExpenses([]);
+      setCurrentUser(null);
     }
   }, [userPhone]);
 
@@ -88,7 +122,10 @@ const App: React.FC = () => {
     const storedUsersRaw = localStorage.getItem(USERS_KEY);
     const users = storedUsersRaw ? JSON.parse(storedUsersRaw) : {};
     if (isLoginMode) {
-      if (users[tempPhone] && users[tempPhone] === tempPassword) {
+      const userData = users[tempPhone];
+      const password = typeof userData === 'string' ? userData : userData?.password;
+      
+      if (userData && password === tempPassword) {
         localStorage.setItem('logged_in_phone', tempPhone);
         localStorage.setItem('is_admin', 'false');
         setUserPhone(tempPhone);
@@ -98,10 +135,20 @@ const App: React.FC = () => {
         showToast("নাম্বার বা পাসওয়ার্ড ভুল!", "error");
       }
     } else {
+      if (!tempName.trim()) {
+        showToast("নাম দিন", "error");
+        return;
+      }
       if (users[tempPhone]) {
         showToast("এই নাম্বার আগে থেকেই আছে", "error");
       } else {
-        users[tempPhone] = tempPassword;
+        const newUser: UserProfile = {
+          phone: tempPhone,
+          name: tempName.trim(),
+          password: tempPassword,
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(tempName)}`
+        };
+        users[tempPhone] = newUser;
         localStorage.setItem(USERS_KEY, JSON.stringify(users));
         localStorage.setItem('logged_in_phone', tempPhone);
         localStorage.setItem('is_admin', 'false');
@@ -357,6 +404,113 @@ const App: React.FC = () => {
     }, 500);
   };
 
+  const handleUpdateProfile = () => {
+    if (!currentUser || !userPhone) return;
+    if (!editName.trim() || editPassword.length < 4 || editPhone.length < 10) {
+      showToast("সঠিক তথ্য দিন", "error");
+      return;
+    }
+
+    const storedUsersRaw = localStorage.getItem(USERS_KEY);
+    if (!storedUsersRaw) return;
+    const users = JSON.parse(storedUsersRaw);
+
+    // If phone number is changing
+    if (editPhone !== userPhone) {
+      if (users[editPhone]) {
+        showToast("এই নাম্বার আগে থেকেই আছে", "error");
+        return;
+      }
+
+      if (window.confirm("মোবাইল নাম্বার পরিবর্তন করলে আপনার সকল ডাটা নতুন নাম্বারে স্থানান্তরিত হবে। আপনি কি নিশ্চিত?")) {
+        // Migrate data
+        const savedMembers = localStorage.getItem(`${APP_PREFIX}${userPhone}_members`);
+        const savedExpenses = localStorage.getItem(`${APP_PREFIX}${userPhone}_expenses`);
+        
+        if (savedMembers) localStorage.setItem(`${APP_PREFIX}${editPhone}_members`, savedMembers);
+        if (savedExpenses) localStorage.setItem(`${APP_PREFIX}${editPhone}_expenses`, savedExpenses);
+        
+        // Remove old data
+        localStorage.removeItem(`${APP_PREFIX}${userPhone}_members`);
+        localStorage.removeItem(`${APP_PREFIX}${userPhone}_expenses`);
+
+        // Update user record
+        const updatedUser: UserProfile = {
+          ...currentUser,
+          name: editName.trim(),
+          password: editPassword,
+          phone: editPhone,
+          avatar: editAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(editName)}`
+        };
+        
+        delete users[userPhone];
+        users[editPhone] = updatedUser;
+        
+        localStorage.setItem(USERS_KEY, JSON.stringify(users));
+        localStorage.setItem('logged_in_phone', editPhone);
+        setUserPhone(editPhone);
+        showToast("প্রোফাইল ও নাম্বার আপডেট হয়েছে!");
+      }
+    } else {
+      // Just update name/password/avatar
+      const updatedUser: UserProfile = {
+        ...currentUser,
+        name: editName.trim(),
+        password: editPassword,
+        avatar: editAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(editName)}`
+      };
+      
+      users[userPhone] = updatedUser;
+      localStorage.setItem(USERS_KEY, JSON.stringify(users));
+      setCurrentUser(updatedUser);
+      showToast("প্রোফাইল আপডেট হয়েছে!");
+    }
+  };
+
+  const renderProfile = () => (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col items-center">
+        <div className="relative group">
+          <img src={editAvatar || (currentUser?.avatar)} className="w-24 h-24 rounded-full border-4 border-indigo-50 shadow-md bg-slate-50" />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+            <span className="text-white text-[10px] font-black uppercase">পরিবর্তন</span>
+          </div>
+        </div>
+        <h2 className="mt-4 text-xl font-black text-slate-900">{currentUser?.name}</h2>
+        <p className="text-slate-400 font-bold text-xs">{currentUser?.phone}</p>
+      </div>
+
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-4">
+        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">প্রোফাইল এডিট করুন</h3>
+        
+        <div className="space-y-1">
+          <label className="text-[10px] font-black text-slate-500 uppercase ml-1">আপনার নাম</label>
+          <input type="text" className="w-full bg-slate-50 border rounded-xl px-4 py-3 font-bold outline-none focus:border-indigo-500" value={editName} onChange={e => setEditName(e.target.value)} />
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-[10px] font-black text-slate-500 uppercase ml-1">মোবাইল নাম্বার</label>
+          <input type="tel" className="w-full bg-slate-50 border rounded-xl px-4 py-3 font-bold outline-none focus:border-indigo-500" value={editPhone} onChange={e => setEditPhone(e.target.value)} />
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-[10px] font-black text-slate-500 uppercase ml-1">পাসওয়ার্ড</label>
+          <input type="text" className="w-full bg-slate-50 border rounded-xl px-4 py-3 font-bold outline-none focus:border-indigo-500" value={editPassword} onChange={e => setEditPassword(e.target.value)} />
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-[10px] font-black text-slate-500 uppercase ml-1">প্রোফাইল ফটো (URL)</label>
+          <input type="text" placeholder="https://..." className="w-full bg-slate-50 border rounded-xl px-4 py-3 font-bold outline-none focus:border-indigo-500" value={editAvatar} onChange={e => setEditAvatar(e.target.value)} />
+          <p className="text-[8px] text-slate-400 mt-1 italic">* আপনার ছবির একটি অনলাইন লিঙ্ক এখানে দিন।</p>
+        </div>
+
+        <button onClick={handleUpdateProfile} className="w-full py-4 rounded-xl font-black shadow-lg bg-indigo-700 text-white active:scale-95 transition-all mt-4">আপডেট করুন</button>
+      </div>
+
+      <button onClick={handleLogout} className="w-full py-4 rounded-xl bg-rose-50 text-rose-600 font-black text-[11px] uppercase border border-rose-100 shadow-sm">লগআউট</button>
+    </div>
+  );
+
   const [expenseDesc, setExpenseDesc] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
   const [expenseType, setExpenseType] = useState<ExpenseType>(ExpenseType.SHARED);
@@ -447,10 +601,14 @@ const App: React.FC = () => {
     const storedUsersRaw = localStorage.getItem(USERS_KEY);
     if (!storedUsersRaw) return [];
     const users = JSON.parse(storedUsersRaw);
-    return Object.keys(users).map(phone => ({
-      phone,
-      password: users[phone]
-    }));
+    return Object.keys(users).map(phone => {
+      const userData = users[phone];
+      return {
+        phone,
+        name: typeof userData === 'string' ? 'User' : userData.name,
+        password: typeof userData === 'string' ? userData : userData.password
+      };
+    });
   };
 
   const renderAdminView = () => (
@@ -463,7 +621,7 @@ const App: React.FC = () => {
           {getAllUsersData().map(user => (
             <div key={user.phone} className={`w-full p-3 rounded-xl border flex justify-between items-center ${userPhone === user.phone ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-700'}`}>
               <div className="flex-1 cursor-pointer" onClick={() => setUserPhone(user.phone)}>
-                <p className="font-black text-[13px]">{user.phone}</p>
+                <p className="font-black text-[13px]">{user.name} ({user.phone})</p>
                 <p className={`text-[10px] ${userPhone === user.phone ? 'text-indigo-200' : 'text-slate-400'} font-bold`}>Pass: {user.password}</p>
               </div>
               <button onClick={() => deleteUser(user.phone)} className="p-2 text-rose-400 hover:text-rose-600 transition-colors">
@@ -584,9 +742,20 @@ const App: React.FC = () => {
           <div className="w-16 h-16 bg-white rounded-2xl mx-auto flex items-center justify-center text-3xl shadow-2xl mb-2">🏪</div>
           <h1 className="text-lg font-bold tracking-tight opacity-90">{isAdminTab ? 'এডমিন লগিন' : (isLoginMode ? 'ইউজার লগইন' : 'নতুন অ্যাকাউন্ট')}</h1>
           <form onSubmit={handleAuth} className="space-y-3">
+            {!isAdminTab && !isLoginMode && (
+              <input 
+                type="text" 
+                placeholder="আপনার নাম" 
+                className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" 
+                value={tempName} 
+                onChange={e => setTempName(e.target.value)} 
+              />
+            )}
             {!isAdminTab && <input type="tel" placeholder="মোবাইল নাম্বার" className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" value={tempPhone} onChange={e => setTempPhone(e.target.value)} />}
             <input type="password" placeholder={isAdminTab ? "এডমিন পাসওয়ার্ড" : "পাসওয়ার্ড"} className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" value={tempPassword} onChange={e => setTempPassword(e.target.value)} />
-            <button className="w-full bg-white text-indigo-900 font-black py-3.5 rounded-xl text-md shadow-xl active:scale-95 transition-all">প্রবেশ করুন</button>
+            <button className="w-full bg-white text-indigo-900 font-black py-3.5 rounded-xl text-md shadow-xl active:scale-95 transition-all">
+              {isAdminTab ? 'প্রবেশ করুন' : (isLoginMode ? 'লগইন করুন' : 'অ্যাকাউন্ট খুলুন')}
+            </button>
           </form>
           <div className="flex flex-col gap-3 items-center">
             {!isAdminTab ? (
@@ -598,7 +767,18 @@ const App: React.FC = () => {
               <button onClick={() => setIsAdminTab(false)} className="text-indigo-200 font-bold text-sm underline">ইউজার লগইনে ফিরে যান</button>
             )}
           </div>
-          <div className="pt-8 flex flex-col items-center gap-3">
+          <div className="mt-auto pt-12 flex flex-col items-center gap-3">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">ডেবলপার</span>
+              <div className="flex items-center gap-4">
+                <a href="https://fb.com/billal8795" target="_blank" rel="noopener noreferrer" className="text-white/60 hover:text-white transition-colors">
+                  <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z"/></svg>
+                </a>
+                <a href="https://wa.me/8801735308795" target="_blank" rel="noopener noreferrer" className="text-white/60 hover:text-white transition-colors">
+                  <svg className="w-5 h-5 fill-current" viewBox="0 0 448 512"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.7 17.8 69.4 27.2 106.2 27.2 122.4 0 222-99.6 222-222 0-59.3-23-115.1-65-117.1zM223.9 445.3c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 365.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.7-186.6 184.7zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-5.5-2.8-23.2-8.5-44.2-27.2-16.4-14.6-27.4-32.7-30.6-38.2-3.2-5.6-.3-8.6 2.4-11.3 2.5-2.4 5.5-6.5 8.3-9.8 2.8-3.2 3.7-5.5 5.5-9.3 1.9-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 13.2 5.7 23.5 9.2 31.6 11.8 13.3 4.2 25.4 3.6 35 2.2 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/></svg>
+                </a>
+              </div>
+            </div>
             <button onClick={handleInstallApp} className="group flex items-center gap-4 bg-indigo-600 border border-white/20 hover:bg-indigo-500 transition-all px-8 py-3 rounded-2xl shadow-xl active:scale-95">
               <div className="bg-white/10 p-2.5 rounded-xl"><svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M17.523 15.3414L19.5441 18.8142C19.7431 19.1561 19.626 19.5932 19.2825 19.7922C18.939 19.9912 18.502 19.8741 18.303 19.5306L16.2415 15.9922C15.0001 16.634 13.5653 17 12 17C10.4347 17 9 16.634 7.7585 15.9922L5.69697 19.5306C5.498 19.8741 5.06094 19.9912 4.71746 19.7922C4.37397 19.5932 4.25688 19.1561 4.45591 18.8142L6.47697 15.3414C4.10319 13.8863 2.5 11.3323 2.5 8.39999C2.5 8.08244 2.51863 7.76922 2.55469 7.46143H21.4453C21.4814 7.76922 21.5 8.08244 21.5 8.39999C21.5 11.3323 19.8968 13.8863 17.523 15.3414ZM7 11.5C7.55228 11.5 8 11.0523 8 10.5C8 9.94772 7.55228 9.5 7 9.5C6.44772 9.5 6 9.94772 6 10.5C6 11.0523 6.44772 11.5 7 11.5ZM17 11.5C17.5523 11.5 18 11.0523 18 10.5C18 9.94772 17.5523 9.5 17 9.5C16.4477 9.5 16 9.94772 16 10.5C16 11.0523 16.4477 11.5 17 11.5ZM15.5 3.5C15.5 3.5 15.5 3.5 15.5 3.5C15.5 3.5 15.5 3.5 15.5 3.5ZM15.8285 2.17157L17.2427 0.757359C17.5356 0.464466 18.0104 0.464466 18.3033 0.757359C18.5962 1.05025 18.5962 1.52513 18.3033 1.81802L17.1517 2.9696C18.3562 3.90595 19.3412 5.09337 20.0381 6.46143H3.96191C4.65882 5.09337 5.64379 3.90595 6.84831 2.9696L5.6967 1.81802C5.40381 1.52513 5.40381 1.05025 5.6967 0.757359C5.98959 0.464466 6.46447 0.464466 6.75736 0.757359L8.17157 2.17157C9.3375 1.41113 10.6385 1 12 1C13.3615 1 14.6625 1.41113 15.8285 2.17157Z"/></svg></div>
               <div className="text-left border-l border-white/20 pl-4">
@@ -779,9 +959,9 @@ const App: React.FC = () => {
                     )}
                   </div>
                 </div>
-                <button onClick={handleLogout} className="w-full py-4 rounded-xl bg-rose-50 text-rose-600 font-black text-[11px] uppercase border border-rose-100 shadow-sm">লগআউট ({userPhone})</button>
               </div>
             )}
+            {activeTab === 'profile' && renderProfile()}
           </>
         )}
       </div>
