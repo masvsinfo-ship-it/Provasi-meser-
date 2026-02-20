@@ -21,6 +21,7 @@ const App: React.FC = () => {
   const [tempName, setTempName] = useState('');
   const [tempPhone, setTempPhone] = useState('');
   const [tempPassword, setTempPassword] = useState('');
+  const [tempLastAmount, setTempLastAmount] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'warning' } | null>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -193,8 +194,8 @@ const App: React.FC = () => {
 
   const handleRecoverPassword = (e: React.FormEvent) => {
     e.preventDefault();
-    if (tempPhone.length < 10) {
-      showToast("সঠিক মোবাইল নাম্বার দিন", "error");
+    if (tempPhone.length < 10 || !tempLastAmount) {
+      showToast("সব তথ্য দিন", "error");
       return;
     }
     const storedUsersRaw = localStorage.getItem(USERS_KEY);
@@ -202,9 +203,23 @@ const App: React.FC = () => {
     const userData = users[tempPhone];
     
     if (userData) {
-      const password = typeof userData === 'string' ? userData : userData.password;
-      alert(`আপনার পাসওয়ার্ড হলো: ${password}`);
-      setIsRecoverMode(false);
+      const savedExpensesRaw = localStorage.getItem(`${APP_PREFIX}${tempPhone}_expenses`);
+      const savedExpenses: Expense[] = savedExpensesRaw ? JSON.parse(savedExpensesRaw) : [];
+      
+      if (savedExpenses.length === 0) {
+        showToast("এই অ্যাকাউন্টে কোনো লেনদেন পাওয়া যায়নি। এডমিনের সাথে যোগাযোগ করুন।", "error");
+        return;
+      }
+
+      const lastAmount = savedExpenses[0].amount;
+      if (parseFloat(tempLastAmount) === lastAmount) {
+        const password = typeof userData === 'string' ? userData : userData.password;
+        alert(`আপনার পাসওয়ার্ড হলো: ${password}`);
+        setIsRecoverMode(false);
+        setTempLastAmount('');
+      } else {
+        showToast("শেষ এন্ট্রি করা টাকার পরিমাণ ভুল!", "error");
+      }
     } else {
       showToast("এই নাম্বারে কোনো অ্যাকাউন্ট পাওয়া যায়নি!", "error");
     }
@@ -776,6 +791,7 @@ const App: React.FC = () => {
               />
             )}
             {!isAdminTab && <input type="tel" placeholder="মোবাইল নাম্বার" className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" value={tempPhone} onChange={e => setTempPhone(e.target.value)} />}
+            {isRecoverMode && <input type="number" placeholder="শেষ কত টাকা এন্ট্রি দিয়েছেন?" className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" value={tempLastAmount} onChange={e => setTempLastAmount(e.target.value)} />}
             {!isRecoverMode && <input type="password" placeholder={isAdminTab ? "এডমিন পাসওয়ার্ড" : "পাসওয়ার্ড"} className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" value={tempPassword} onChange={e => setTempPassword(e.target.value)} />}
             <button className="w-full bg-white text-indigo-900 font-black py-3.5 rounded-xl text-md shadow-xl active:scale-95 transition-all">
               {isAdminTab ? 'প্রবেশ করুন' : (isRecoverMode ? 'পাসওয়ার্ড দেখুন' : (isLoginMode ? 'লগইন করুন' : 'অ্যাকাউন্ট খুলুন'))}
