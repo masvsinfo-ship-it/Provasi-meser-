@@ -104,14 +104,14 @@ const FullMessReport: React.FC<FullMessReportProps> = ({ summary, expenses, curr
         </table>
       </div>
 
-      {/* Recent Transactions (Optional, maybe just a few) */}
+      {/* All Transactions */}
       <div>
         <h3 className="text-lg font-black text-slate-900 mb-4 flex items-center gap-2">
           <span className="w-2 h-6 bg-indigo-600 rounded-full"></span>
-          সাম্প্রতিক লেনদেন (শেষ ১০টি)
+          সকল লেনদেন
         </h3>
         <div className="space-y-2">
-          {expenses.slice(0, 10).map((exp) => (
+          {expenses.map((exp) => (
             <div key={exp.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
               <div>
                 <p className="text-[11px] font-black text-slate-800">{exp.description}</p>
