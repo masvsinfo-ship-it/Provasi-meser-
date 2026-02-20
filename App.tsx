@@ -1,8 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Member, Expense, ExpenseType, MessSummary } from './types.ts';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Member, Expense, ExpenseType, MessSummary, MemberBalance } from './types.ts';
 import { calculateMessSummary, formatCurrency, getAutoDetectedCurrency } from './utils/calculations.ts';
 import Layout from './components/Layout.tsx';
 import { geminiService } from './services/geminiService.ts';
+import MemberReport from './components/MemberReport.tsx';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const APP_PREFIX = 'mess_tracker_v3_';
 const USERS_KEY = 'mess_tracker_auth_users';
@@ -26,6 +29,9 @@ const App: React.FC = () => {
   });
 
   const [breakfastInputs, setBreakfastInputs] = useState<Record<string, string>>({});
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [pdfMemberId, setPdfMemberId] = useState<string | null>(null);
+  const reportRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
     if (userPhone) {
@@ -225,6 +231,71 @@ const App: React.FC = () => {
     }
   };
 
+  const downloadMemberPDF = async (memberId: string) => {
+    setPdfMemberId(memberId);
+    setIsGeneratingPdf(true);
+    showToast("পিডিএফ তৈরি হচ্ছে...", "success");
+
+    // Wait for the hidden component to render
+    setTimeout(async () => {
+      const element = document.getElementById(`report-${memberId}`);
+      if (!element) {
+        setIsGeneratingPdf(false);
+        showToast("পিডিএফ তৈরিতে সমস্যা হয়েছে", "error");
+        return;
+      }
+
+      try {
+        const canvas = await html2canvas(element, {
+          scale: 2, // Higher quality
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff'
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'px',
+          format: [canvas.width, canvas.height]
+        });
+
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        
+        const memberName = members.find(m => m.id === memberId)?.name || 'member';
+        const fileName = `${memberName}_mess_report_${new Date().toLocaleDateString('bn-BD')}.pdf`;
+        
+        // Try to share if supported, otherwise download
+        if (navigator.share && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+          const blob = pdf.output('blob');
+          const file = new File([blob], fileName, { type: 'application/pdf' });
+          
+          try {
+            await navigator.share({
+              files: [file],
+              title: `${memberName} এর মেছ রিপোর্ট`,
+              text: 'মেছ হিসাব রিপোর্ট ডাউনলোড করুন।'
+            });
+            showToast("শেয়ার করা হয়েছে");
+          } catch (err) {
+            // If share fails or cancelled, fallback to download
+            pdf.save(fileName);
+            showToast("পিডিএফ ডাউনলোড হয়েছে");
+          }
+        } else {
+          pdf.save(fileName);
+          showToast("পিডিএফ ডাউনলোড হয়েছে");
+        }
+      } catch (error) {
+        console.error("PDF Generation Error:", error);
+        showToast("পিডিএফ তৈরিতে সমস্যা হয়েছে", "error");
+      } finally {
+        setIsGeneratingPdf(false);
+        setPdfMemberId(null);
+      }
+    }, 500);
+  };
+
   const [expenseDesc, setExpenseDesc] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
   const [expenseType, setExpenseType] = useState<ExpenseType>(ExpenseType.SHARED);
@@ -389,12 +460,23 @@ const App: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
-                   <p className={`text-[18px] font-black leading-none ${mb.netBalance < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                    {formatCurrency(mb.netBalance, currencyCode)}
-                  </p>
-                  <p className="text-[8px] font-black uppercase text-slate-300 mt-1 tracking-widest">ব্যালেন্স</p>
-                </div>
+                  <div className="text-right flex flex-col items-end">
+                    <p className={`text-[18px] font-black leading-none ${mb.netBalance < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                      {formatCurrency(mb.netBalance, currencyCode)}
+                    </p>
+                    <p className="text-[8px] font-black uppercase text-slate-300 mt-1 tracking-widest">ব্যালেন্স</p>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        downloadMemberPDF(mb.member.id);
+                      }}
+                      disabled={isGeneratingPdf}
+                      className="mt-2 p-1.5 bg-slate-50 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 rounded-lg border border-slate-100 transition-all flex items-center gap-1 group"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                      <span className="text-[7px] font-black uppercase tracking-tighter hidden group-hover:inline">রিপোর্ট</span>
+                    </button>
+                  </div>
               </div>
 
               <div className="grid grid-cols-4 gap-2 pt-3 border-t border-slate-50">
@@ -467,6 +549,18 @@ const App: React.FC = () => {
 
   return (
     <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
+      {/* Hidden container for PDF generation */}
+      <div className="fixed -left-[2000px] top-0 pointer-events-none overflow-hidden">
+        {isGeneratingPdf && pdfMemberId && (
+          <MemberReport 
+            reportId={`report-${pdfMemberId}`}
+            memberBalance={summary.memberBalances.find(mb => mb.member.id === pdfMemberId)!}
+            expenses={expenses}
+            currencyCode={currencyCode}
+          />
+        )}
+      </div>
+
       <div className="max-w-md mx-auto pb-24 text-[13px]">
         {isAdmin && !userPhone && renderAdminView()}
         {isAdmin && userPhone && (
