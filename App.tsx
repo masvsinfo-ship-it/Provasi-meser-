@@ -16,6 +16,7 @@ const App: React.FC = () => {
   const [userPhone, setUserPhone] = useState<string | null>(() => localStorage.getItem('logged_in_phone'));
   const [isAdmin, setIsAdmin] = useState<boolean>(() => localStorage.getItem('is_admin') === 'true');
   const [isLoginMode, setIsLoginMode] = useState(true);
+  const [isRecoverMode, setIsRecoverMode] = useState(false);
   const [isAdminTab, setIsAdminTab] = useState(false);
   const [tempName, setTempName] = useState('');
   const [tempPhone, setTempPhone] = useState('');
@@ -183,6 +184,29 @@ const App: React.FC = () => {
       }
     } else {
       alert("আপনার ব্রাউজারের থ্রি-ডট মেনু থেকে 'Install App' বা 'Add to Home Screen' বাটনে ক্লিক করে এন্ড্রয়েড অ্যাপ হিসেবে ব্যবহার করুন।");
+    }
+  };
+
+  const handleInstallIPhone = () => {
+    alert("আইফোনে ইনস্টল করতে Safari ব্রাউজারের নিচে থাকা 'Share' বাটনে ক্লিক করে 'Add to Home Screen' অপশনটি সিলেক্ট করুন।");
+  };
+
+  const handleRecoverPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (tempPhone.length < 10) {
+      showToast("সঠিক মোবাইল নাম্বার দিন", "error");
+      return;
+    }
+    const storedUsersRaw = localStorage.getItem(USERS_KEY);
+    const users = storedUsersRaw ? JSON.parse(storedUsersRaw) : {};
+    const userData = users[tempPhone];
+    
+    if (userData) {
+      const password = typeof userData === 'string' ? userData : userData.password;
+      alert(`আপনার পাসওয়ার্ড হলো: ${password}`);
+      setIsRecoverMode(false);
+    } else {
+      showToast("এই নাম্বারে কোনো অ্যাকাউন্ট পাওয়া যায়নি!", "error");
     }
   };
 
@@ -740,9 +764,9 @@ const App: React.FC = () => {
         <div className="relative z-10 space-y-5 max-w-sm mx-auto w-full py-8">
           <h2 className="text-xl font-black tracking-tight mb-2">ব্যাচেলর দের মেছের হিসাব</h2>
           <div className="w-16 h-16 bg-white rounded-2xl mx-auto flex items-center justify-center text-3xl shadow-2xl mb-2">🏪</div>
-          <h1 className="text-lg font-bold tracking-tight opacity-90">{isAdminTab ? 'এডমিন লগিন' : (isLoginMode ? 'ইউজার লগইন' : 'নতুন অ্যাকাউন্ট')}</h1>
-          <form onSubmit={handleAuth} className="space-y-3">
-            {!isAdminTab && !isLoginMode && (
+          <h1 className="text-lg font-bold tracking-tight opacity-90">{isAdminTab ? 'এডমিন লগিন' : (isRecoverMode ? 'পাসওয়ার্ড পুনরুদ্ধার' : (isLoginMode ? 'ইউজার লগইন' : 'নতুন অ্যাকাউন্ট'))}</h1>
+          <form onSubmit={isRecoverMode ? handleRecoverPassword : handleAuth} className="space-y-3">
+            {!isAdminTab && !isLoginMode && !isRecoverMode && (
               <input 
                 type="text" 
                 placeholder="আপনার নাম" 
@@ -752,16 +776,23 @@ const App: React.FC = () => {
               />
             )}
             {!isAdminTab && <input type="tel" placeholder="মোবাইল নাম্বার" className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" value={tempPhone} onChange={e => setTempPhone(e.target.value)} />}
-            <input type="password" placeholder={isAdminTab ? "এডমিন পাসওয়ার্ড" : "পাসওয়ার্ড"} className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" value={tempPassword} onChange={e => setTempPassword(e.target.value)} />
+            {!isRecoverMode && <input type="password" placeholder={isAdminTab ? "এডমিন পাসওয়ার্ড" : "পাসওয়ার্ড"} className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" value={tempPassword} onChange={e => setTempPassword(e.target.value)} />}
             <button className="w-full bg-white text-indigo-900 font-black py-3.5 rounded-xl text-md shadow-xl active:scale-95 transition-all">
-              {isAdminTab ? 'প্রবেশ করুন' : (isLoginMode ? 'লগইন করুন' : 'অ্যাকাউন্ট খুলুন')}
+              {isAdminTab ? 'প্রবেশ করুন' : (isRecoverMode ? 'পাসওয়ার্ড দেখুন' : (isLoginMode ? 'লগইন করুন' : 'অ্যাকাউন্ট খুলুন'))}
             </button>
           </form>
           <div className="flex flex-col gap-3 items-center">
             {!isAdminTab ? (
               <>
-                <button onClick={() => setIsLoginMode(!isLoginMode)} className="text-indigo-200 font-bold text-sm underline">{isLoginMode ? 'নতুন মেছ? অ্যাকাউন্ট খুলুন' : 'আগের মেছ? লগইন করুন'}</button>
-                <button onClick={() => setIsAdminTab(true)} className="text-white/40 font-black text-[10px] uppercase tracking-widest bg-white/5 px-4 py-2 rounded-full mt-2">এডমিন লগিন</button>
+                {!isRecoverMode ? (
+                  <>
+                    <button onClick={() => setIsLoginMode(!isLoginMode)} className="text-indigo-200 font-bold text-sm underline">{isLoginMode ? 'নতুন মেছ? অ্যাকাউন্ট খুলুন' : 'আগের মেছ? লগইন করুন'}</button>
+                    {isLoginMode && <button onClick={() => setIsRecoverMode(true)} className="text-white/60 font-bold text-xs underline">পাসওয়ার্ড ভুলে গেছেন?</button>}
+                    <button onClick={() => setIsAdminTab(true)} className="text-white/40 font-black text-[10px] uppercase tracking-widest bg-white/5 px-4 py-2 rounded-full mt-2">এডমিন লগিন</button>
+                  </>
+                ) : (
+                  <button onClick={() => setIsRecoverMode(false)} className="text-indigo-200 font-bold text-sm underline">লগইনে ফিরে যান</button>
+                )}
               </>
             ) : (
               <button onClick={() => setIsAdminTab(false)} className="text-indigo-200 font-bold text-sm underline">ইউজার লগইনে ফিরে যান</button>
@@ -779,13 +810,22 @@ const App: React.FC = () => {
                 </a>
               </div>
             </div>
-            <button onClick={handleInstallApp} className="group flex items-center gap-4 bg-indigo-600 border border-white/20 hover:bg-indigo-500 transition-all px-8 py-3 rounded-2xl shadow-xl active:scale-95">
-              <div className="bg-white/10 p-2.5 rounded-xl"><svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M17.523 15.3414L19.5441 18.8142C19.7431 19.1561 19.626 19.5932 19.2825 19.7922C18.939 19.9912 18.502 19.8741 18.303 19.5306L16.2415 15.9922C15.0001 16.634 13.5653 17 12 17C10.4347 17 9 16.634 7.7585 15.9922L5.69697 19.5306C5.498 19.8741 5.06094 19.9912 4.71746 19.7922C4.37397 19.5932 4.25688 19.1561 4.45591 18.8142L6.47697 15.3414C4.10319 13.8863 2.5 11.3323 2.5 8.39999C2.5 8.08244 2.51863 7.76922 2.55469 7.46143H21.4453C21.4814 7.76922 21.5 8.08244 21.5 8.39999C21.5 11.3323 19.8968 13.8863 17.523 15.3414ZM7 11.5C7.55228 11.5 8 11.0523 8 10.5C8 9.94772 7.55228 9.5 7 9.5C6.44772 9.5 6 9.94772 6 10.5C6 11.0523 6.44772 11.5 7 11.5ZM17 11.5C17.5523 11.5 18 11.0523 18 10.5C18 9.94772 17.5523 9.5 17 9.5C16.4477 9.5 16 9.94772 16 10.5C16 11.0523 16.4477 11.5 17 11.5ZM15.5 3.5C15.5 3.5 15.5 3.5 15.5 3.5C15.5 3.5 15.5 3.5 15.5 3.5ZM15.8285 2.17157L17.2427 0.757359C17.5356 0.464466 18.0104 0.464466 18.3033 0.757359C18.5962 1.05025 18.5962 1.52513 18.3033 1.81802L17.1517 2.9696C18.3562 3.90595 19.3412 5.09337 20.0381 6.46143H3.96191C4.65882 5.09337 5.64379 3.90595 6.84831 2.9696L5.6967 1.81802C5.40381 1.52513 5.40381 1.05025 5.6967 0.757359C5.98959 0.464466 6.46447 0.464466 6.75736 0.757359L8.17157 2.17157C9.3375 1.41113 10.6385 1 12 1C13.3615 1 14.6625 1.41113 15.8285 2.17157Z"/></svg></div>
-              <div className="text-left border-l border-white/20 pl-4">
-                <p className="text-[10px] font-black uppercase text-indigo-200 mb-1">এন্ড্রয়েড অ্যাপ</p>
-                <p className="text-[14px] font-black text-white">ইনস্টল করুন</p>
-              </div>
-            </button>
+            <div className="flex flex-wrap justify-center gap-3 w-full px-2">
+              <button onClick={handleInstallApp} className="flex-1 min-w-[140px] flex items-center gap-3 bg-indigo-600 border border-white/20 hover:bg-indigo-500 transition-all p-3 rounded-2xl shadow-xl active:scale-95">
+                <div className="bg-white/10 p-2 rounded-xl"><svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M17.523 15.3414L19.5441 18.8142C19.7431 19.1561 19.626 19.5932 19.2825 19.7922C18.939 19.9912 18.502 19.8741 18.303 19.5306L16.2415 15.9922C15.0001 16.634 13.5653 17 12 17C10.4347 17 9 16.634 7.7585 15.9922L5.69697 19.5306C5.498 19.8741 5.06094 19.9912 4.71746 19.7922C4.37397 19.5932 4.25688 19.1561 4.45591 18.8142L6.47697 15.3414C4.10319 13.8863 2.5 11.3323 2.5 8.39999C2.5 8.08244 2.51863 7.76922 2.55469 7.46143H21.4453C21.4814 7.76922 21.5 8.08244 21.5 8.39999C21.5 11.3323 19.8968 13.8863 17.523 15.3414ZM7 11.5C7.55228 11.5 8 11.0523 8 10.5C8 9.94772 7.55228 9.5 7 9.5C6.44772 9.5 6 9.94772 6 10.5C6 11.0523 6.44772 11.5 7 11.5ZM17 11.5C17.5523 11.5 18 11.0523 18 10.5C18 9.94772 17.5523 9.5 17 9.5C16.4477 9.5 16 9.94772 16 10.5C16 11.0523 16.4477 11.5 17 11.5ZM15.5 3.5C15.5 3.5 15.5 3.5 15.5 3.5C15.5 3.5 15.5 3.5 15.5 3.5ZM15.8285 2.17157L17.2427 0.757359C17.5356 0.464466 18.0104 0.464466 18.3033 0.757359C18.5962 1.05025 18.5962 1.52513 18.3033 1.81802L17.1517 2.9696C18.3562 3.90595 19.3412 5.09337 20.0381 6.46143H3.96191C4.65882 5.09337 5.64379 3.90595 6.84831 2.9696L5.6967 1.81802C5.40381 1.52513 5.40381 1.05025 5.6967 0.757359C5.98959 0.464466 6.46447 0.464466 6.75736 0.757359L8.17157 2.17157C9.3375 1.41113 10.6385 1 12 1C13.3615 1 14.6625 1.41113 15.8285 2.17157Z"/></svg></div>
+                <div className="text-left border-l border-white/20 pl-3">
+                  <p className="text-[8px] font-black uppercase text-indigo-200 mb-0.5">এন্ড্রয়েড অ্যাপ</p>
+                  <p className="text-[12px] font-black text-white">ইনস্টল</p>
+                </div>
+              </button>
+              <button onClick={handleInstallIPhone} className="flex-1 min-w-[140px] flex items-center gap-3 bg-white/10 border border-white/20 hover:bg-white/20 transition-all p-3 rounded-2xl shadow-xl active:scale-95">
+                <div className="bg-white/10 p-2 rounded-xl"><svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 384 512"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg></div>
+                <div className="text-left border-l border-white/20 pl-3">
+                  <p className="text-[8px] font-black uppercase text-indigo-200 mb-0.5">আইফোন অ্যাপ</p>
+                  <p className="text-[12px] font-black text-white">ইনস্টল</p>
+                </div>
+              </button>
+            </div>
             <p className="text-[10px] text-indigo-300/60 font-medium max-w-[200px] leading-tight mt-1">এই অ্যাপটি একবার ইনস্টল করলে আপনি অফলাইনেও ব্যবহার করতে পারবেন।</p>
           </div>
         </div>
