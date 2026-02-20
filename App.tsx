@@ -4,6 +4,7 @@ import { calculateMessSummary, formatCurrency, getAutoDetectedCurrency } from '.
 import Layout from './components/Layout.tsx';
 import { geminiService } from './services/geminiService.ts';
 import MemberReport from './components/MemberReport.tsx';
+import FullMessReport from './components/FullMessReport.tsx';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -30,6 +31,7 @@ const App: React.FC = () => {
 
   const [breakfastInputs, setBreakfastInputs] = useState<Record<string, string>>({});
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isGeneratingFullPdf, setIsGeneratingFullPdf] = useState(false);
   const [pdfMemberId, setPdfMemberId] = useState<string | null>(null);
   const reportRef = useRef<HTMLDivElement>(null);
   
@@ -296,6 +298,65 @@ const App: React.FC = () => {
     }, 500);
   };
 
+  const downloadFullMessPDF = async () => {
+    setIsGeneratingFullPdf(true);
+    showToast("সম্পূর্ণ রিপোর্ট তৈরি হচ্ছে...", "success");
+
+    setTimeout(async () => {
+      const element = document.getElementById(`full-mess-report`);
+      if (!element) {
+        setIsGeneratingFullPdf(false);
+        showToast("রিপোর্ট তৈরিতে সমস্যা হয়েছে", "error");
+        return;
+      }
+
+      try {
+        const canvas = await html2canvas(element, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff'
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'px',
+          format: [canvas.width, canvas.height]
+        });
+
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        
+        const fileName = `full_mess_report_${new Date().toLocaleDateString('bn-BD')}.pdf`;
+        
+        if (navigator.share && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+          const blob = pdf.output('blob');
+          const file = new File([blob], fileName, { type: 'application/pdf' });
+          
+          try {
+            await navigator.share({
+              files: [file],
+              title: `মেছ হিসাব সম্পূর্ণ রিপোর্ট`,
+              text: 'মেছ হিসাবের সম্পূর্ণ রিপোর্ট ডাউনলোড করুন।'
+            });
+            showToast("শেয়ার করা হয়েছে");
+          } catch (err) {
+            pdf.save(fileName);
+            showToast("রিপোর্ট ডাউনলোড হয়েছে");
+          }
+        } else {
+          pdf.save(fileName);
+          showToast("রিপোর্ট ডাউনলোড হয়েছে");
+        }
+      } catch (error) {
+        console.error("Full PDF Generation Error:", error);
+        showToast("রিপোর্ট তৈরিতে সমস্যা হয়েছে", "error");
+      } finally {
+        setIsGeneratingFullPdf(false);
+      }
+    }, 500);
+  };
+
   const [expenseDesc, setExpenseDesc] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
   const [expenseType, setExpenseType] = useState<ExpenseType>(ExpenseType.SHARED);
@@ -424,7 +485,17 @@ const App: React.FC = () => {
         <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full translate-x-12 -translate-y-12 blur-2xl"></div>
         <div className="relative z-10">
           <p className="text-indigo-200 text-[10px] font-black uppercase tracking-widest mb-1">মোট দোকান বাকি</p>
-          <h1 className="text-3xl font-black">{formatCurrency(summary.grandTotalDebt, currencyCode)}</h1>
+          <div className="flex justify-between items-start">
+            <h1 className="text-3xl font-black">{formatCurrency(summary.grandTotalDebt, currencyCode)}</h1>
+            <button 
+              onClick={downloadFullMessPDF}
+              disabled={isGeneratingFullPdf}
+              className="bg-white/20 hover:bg-white/30 text-white p-2 rounded-xl border border-white/10 transition-all flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              <span className="text-[9px] font-black uppercase tracking-wider">সম্পূর্ণ রিপোর্ট</span>
+            </button>
+          </div>
           <div className="mt-3 grid grid-cols-4 gap-1 text-center">
             <div className="bg-white/10 p-1.5 rounded-lg"><p className="text-[6px] font-black opacity-60">শেয়ার</p><p className="text-[9px] font-black">{formatCurrency(summary.totalSharedExpense, currencyCode)}</p></div>
             <div className="bg-white/10 p-1.5 rounded-lg"><p className="text-[6px] font-black opacity-60">ব্যক্তিগত</p><p className="text-[9px] font-black">{formatCurrency(summary.totalPersonalExpense, currencyCode)}</p></div>
@@ -555,6 +626,14 @@ const App: React.FC = () => {
           <MemberReport 
             reportId={`report-${pdfMemberId}`}
             memberBalance={summary.memberBalances.find(mb => mb.member.id === pdfMemberId)!}
+            expenses={expenses}
+            currencyCode={currencyCode}
+          />
+        )}
+        {isGeneratingFullPdf && (
+          <FullMessReport 
+            reportId="full-mess-report"
+            summary={summary}
             expenses={expenses}
             currencyCode={currencyCode}
           />
