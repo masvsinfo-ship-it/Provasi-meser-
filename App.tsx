@@ -133,14 +133,14 @@ const App: React.FC = () => {
         localStorage.setItem('is_admin', 'true');
         setIsAdmin(true);
         setUserPhone(null);
-        showToast("এডমিন লগিন সফল!");
+        showToast(t.adminLoginSuccess);
       } else {
-        showToast("ভুল এডমিন পাসওয়ার্ড!", "error");
+        showToast(t.wrongAdminPass, "error");
       }
       return;
     }
     if (tempPhone.length < 10 || tempPassword.length < 4) {
-      showToast("সঠিক তথ্য দিন", "error");
+      showToast(t.errorInput, "error");
       return;
     }
     const storedUsersRaw = localStorage.getItem(USERS_KEY);
@@ -154,17 +154,17 @@ const App: React.FC = () => {
         localStorage.setItem('is_admin', 'false');
         setUserPhone(tempPhone);
         setIsAdmin(false);
-        showToast("লগইন সফল!");
+        showToast(t.loginSuccess);
       } else {
-        showToast("নাম্বার বা পাসওয়ার্ড ভুল!", "error");
+        showToast(t.wrongPhonePass, "error");
       }
     } else {
       if (!tempName.trim()) {
-        showToast("নাম দিন", "error");
+        showToast(t.nameRequired, "error");
         return;
       }
       if (users[tempPhone]) {
-        showToast("এই নাম্বার আগে থেকেই আছে", "error");
+        showToast(t.phoneExists, "error");
       } else {
         const newUser: UserProfile = {
           phone: tempPhone,
@@ -178,13 +178,13 @@ const App: React.FC = () => {
         localStorage.setItem('is_admin', 'false');
         setUserPhone(tempPhone);
         setIsAdmin(false);
-        showToast("রেজিস্ট্রেশন সফল!");
+        showToast(t.registrationSuccess);
       }
     }
   };
 
   const handleLogout = () => {
-    if (window.confirm("লগআউট করতে চান?")) {
+    if (window.confirm(t.confirmLogout)) {
       localStorage.removeItem('logged_in_phone');
       localStorage.removeItem('is_admin');
       setUserPhone(null);
@@ -193,7 +193,7 @@ const App: React.FC = () => {
       setTempPassword('');
       setTempPhone('');
       setActiveTab('dashboard');
-      showToast("সফলভাবে লগআউট হয়েছে");
+      showToast(t.logoutSuccess);
     }
   };
 
@@ -203,15 +203,15 @@ const App: React.FC = () => {
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === 'accepted') {
         setDeferredPrompt(null);
-        showToast("অ্যাপটি ইনস্টল হচ্ছে...");
+        showToast(t.installingApp);
       }
     } else {
-      alert("আপনার ব্রাউজারের থ্রি-ডট মেনু থেকে 'Install App' বা 'Add to Home Screen' বাটনে ক্লিক করে এন্ড্রয়েড অ্যাপ হিসেবে ব্যবহার করুন।");
+      alert(t.androidInstallAlert);
     }
   };
 
   const handleInstallIPhone = () => {
-    alert("আইফোনে ইনস্টল করতে Safari ব্রাউজারের নিচে থাকা 'Share' বাটনে ক্লিক করে 'Add to Home Screen' অপশনটি সিলেক্ট করুন।");
+    alert(t.iphoneInstallAlert);
   };
 
   const handleRecoverPassword = (e: React.FormEvent) => {
@@ -248,7 +248,7 @@ const App: React.FC = () => {
   };
 
   const deleteUser = (phoneToDelete: string) => {
-    if (window.confirm(`${phoneToDelete} এর সকল ডাটা চিরতরে মুছে ফেলতে চান?`)) {
+    if (window.confirm(`${phoneToDelete} ${t.confirmDeleteMember}`)) {
       const storedUsersRaw = localStorage.getItem(USERS_KEY);
       if (storedUsersRaw) {
         const users = JSON.parse(storedUsersRaw);
@@ -257,21 +257,21 @@ const App: React.FC = () => {
         localStorage.removeItem(`${APP_PREFIX}${phoneToDelete}_members`);
         localStorage.removeItem(`${APP_PREFIX}${phoneToDelete}_expenses`);
         if (userPhone === phoneToDelete) setUserPhone(null);
-        showToast(`${phoneToDelete} ডিলিট করা হয়েছে`, 'error');
+        showToast(`${phoneToDelete} ${t.memberDeleted}`, 'error');
       }
     }
   };
 
   const summary = useMemo(() => calculateMessSummary(members, expenses), [members, expenses]);
 
-  const [aiInsight, setAiInsight] = useState<string>('বিশ্লেষণ করছি...');
+  const [aiInsight, setAiInsight] = useState<string>(t.analyzing);
   useEffect(() => {
     const fetchInsight = async () => {
       if (expenses.length > 0 && userPhone) {
         const insight = await geminiService.getSmartInsight(summary, currencyCode);
         setAiInsight(insight);
       } else {
-        setAiInsight("মেম্বার ও খরচ যোগ করলে আমি আপনাকে পরামর্শ দিবো। 😊");
+        setAiInsight(t.aiNoData);
       }
     };
     fetchInsight();
@@ -291,23 +291,23 @@ const App: React.FC = () => {
     const updated = [...members, newMember];
     setMembers(updated);
     (document.getElementById('member-name-input') as HTMLInputElement).value = '';
-    showToast(`${newMember.name} যোগ হয়েছে`);
+    showToast(`${newMember.name} ${t.memberAdded}`);
     saveToDisk(updated, expenses);
   };
 
   const deleteMemberRecord = (id: string) => {
-    if (window.confirm("আপনি কি নিশ্চিতভাবে এই মেম্বারকে ডিলিট করতে চান?")) {
+    if (window.confirm(t.confirmDeleteMember)) {
       const updatedMembers = members.filter(m => m.id !== id);
       const updatedExpenses = expenses.filter(e => e.targetMemberId !== id);
       setMembers(updatedMembers);
       setExpenses(updatedExpenses);
       saveToDisk(updatedMembers, updatedExpenses);
-      showToast("মেম্বার ডিলিট করা হয়েছে", "error");
+      showToast(t.memberDeleted, "error");
     }
   };
 
   const leaveMember = (id: string) => {
-    if (window.confirm("এই মেম্বার কি মেছ ছেড়ে দিচ্ছেন?")) {
+    if (window.confirm(t.confirmInactive)) {
       const now = Date.now();
       const updated = members.map(m => {
         if (m.id === id) {
@@ -320,12 +320,12 @@ const App: React.FC = () => {
       });
       setMembers(updated);
       saveToDisk(updated, expenses);
-      showToast("মেম্বারকে নিষ্ক্রিয় করা হয়েছে", "warning");
+      showToast(t.memberInactivated, "warning");
     }
   };
 
   const reactivateMember = (id: string) => {
-    if (window.confirm("এই মেম্বারকে কি আবার সক্রিয় করতে চান?")) {
+    if (window.confirm(t.confirmActive)) {
       const now = Date.now();
       const updated = members.map(m => {
         if (m.id === id) {
@@ -337,21 +337,21 @@ const App: React.FC = () => {
       });
       setMembers(updated);
       saveToDisk(updated, expenses);
-      showToast("মেম্বার সক্রিয় করা হয়েছে", "success");
+      showToast(t.memberActivated, "success");
     }
   };
 
   const downloadMemberPDF = async (memberId: string) => {
     setPdfMemberId(memberId);
     setIsGeneratingPdf(true);
-    showToast("পিডিএফ তৈরি হচ্ছে...", "success");
+    showToast(t.generatingPdf, "success");
 
     // Wait for the hidden component to render
     setTimeout(async () => {
       const element = document.getElementById(`report-${memberId}`);
       if (!element) {
         setIsGeneratingPdf(false);
-        showToast("পিডিএফ তৈরিতে সমস্যা হয়েছে", "error");
+        showToast(t.pdfError, "error");
         return;
       }
 
@@ -373,7 +373,7 @@ const App: React.FC = () => {
         pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
         
         const memberName = members.find(m => m.id === memberId)?.name || 'member';
-        const fileName = `${memberName}_mess_report_${new Date().toLocaleDateString('bn-BD')}.pdf`;
+        const fileName = `${memberName}_mess_report_${new Date().toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US')}.pdf`;
         
         // Try to share if supported, otherwise download
         if (navigator.share && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
@@ -383,22 +383,22 @@ const App: React.FC = () => {
           try {
             await navigator.share({
               files: [file],
-              title: `${memberName} এর মেছ রিপোর্ট`,
-              text: 'মেছ হিসাব রিপোর্ট ডাউনলোড করুন।'
+              title: `${memberName} ${t.memberReport}`,
+              text: t.downloadReport
             });
-            showToast("শেয়ার করা হয়েছে");
+            showToast(t.shareSuccess);
           } catch (err) {
             // If share fails or cancelled, fallback to download
             pdf.save(fileName);
-            showToast("পিডিএফ ডাউনলোড হয়েছে");
+            showToast(t.pdfDownloaded);
           }
         } else {
           pdf.save(fileName);
-          showToast("পিডিএফ ডাউনলোড হয়েছে");
+          showToast(t.pdfDownloaded);
         }
       } catch (error) {
         console.error("PDF Generation Error:", error);
-        showToast("পিডিএফ তৈরিতে সমস্যা হয়েছে", "error");
+        showToast(t.pdfError, "error");
       } finally {
         setIsGeneratingPdf(false);
         setPdfMemberId(null);
@@ -408,13 +408,13 @@ const App: React.FC = () => {
 
   const downloadFullMessPDF = async () => {
     setIsGeneratingFullPdf(true);
-    showToast("সম্পূর্ণ রিপোর্ট তৈরি হচ্ছে...", "success");
+    showToast(t.generatingPdf, "success");
 
     setTimeout(async () => {
       const element = document.getElementById(`full-mess-report`);
       if (!element) {
         setIsGeneratingFullPdf(false);
-        showToast("রিপোর্ট তৈরিতে সমস্যা হয়েছে", "error");
+        showToast(t.pdfError, "error");
         return;
       }
 
@@ -435,7 +435,7 @@ const App: React.FC = () => {
 
         pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
         
-        const fileName = `full_mess_report_${new Date().toLocaleDateString('bn-BD')}.pdf`;
+        const fileName = `full_mess_report_${new Date().toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US')}.pdf`;
         
         if (navigator.share && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
           const blob = pdf.output('blob');
@@ -444,21 +444,21 @@ const App: React.FC = () => {
           try {
             await navigator.share({
               files: [file],
-              title: `মেছ হিসাব সম্পূর্ণ রিপোর্ট`,
-              text: 'মেছ হিসাবের সম্পূর্ণ রিপোর্ট ডাউনলোড করুন।'
+              title: t.fullReport,
+              text: t.downloadReport
             });
-            showToast("শেয়ার করা হয়েছে");
+            showToast(t.shareSuccess);
           } catch (err) {
             pdf.save(fileName);
-            showToast("রিপোর্ট ডাউনলোড হয়েছে");
+            showToast(t.pdfDownloaded);
           }
         } else {
           pdf.save(fileName);
-          showToast("রিপোর্ট ডাউনলোড হয়েছে");
+          showToast(t.pdfDownloaded);
         }
       } catch (error) {
         console.error("Full PDF Generation Error:", error);
-        showToast("রিপোর্ট তৈরিতে সমস্যা হয়েছে", "error");
+        showToast(t.pdfError, "error");
       } finally {
         setIsGeneratingFullPdf(false);
       }
@@ -468,7 +468,7 @@ const App: React.FC = () => {
   const handleUpdateProfile = () => {
     if (!currentUser || !userPhone) return;
     if (!editName.trim() || editPassword.length < 4 || editPhone.length < 10) {
-      showToast("সঠিক তথ্য দিন", "error");
+      showToast(t.errorInput, "error");
       return;
     }
 
@@ -479,11 +479,11 @@ const App: React.FC = () => {
     // If phone number is changing
     if (editPhone !== userPhone) {
       if (users[editPhone]) {
-        showToast("এই নাম্বার আগে থেকেই আছে", "error");
+        showToast(t.phoneExists, "error");
         return;
       }
 
-      if (window.confirm("মোবাইল নাম্বার পরিবর্তন করলে আপনার সকল ডাটা নতুন নাম্বারে স্থানান্তরিত হবে। আপনি কি নিশ্চিত?")) {
+      if (window.confirm(t.confirmPhoneChange)) {
         // Migrate data
         const savedMembers = localStorage.getItem(`${APP_PREFIX}${userPhone}_members`);
         const savedExpenses = localStorage.getItem(`${APP_PREFIX}${userPhone}_expenses`);
@@ -510,7 +510,7 @@ const App: React.FC = () => {
         localStorage.setItem(USERS_KEY, JSON.stringify(users));
         localStorage.setItem('logged_in_phone', editPhone);
         setUserPhone(editPhone);
-        showToast("প্রোফাইল ও নাম্বার আপডেট হয়েছে!");
+        showToast(t.profileUpdated);
       }
     } else {
       // Just update name/password/avatar
@@ -524,7 +524,7 @@ const App: React.FC = () => {
       users[userPhone] = updatedUser;
       localStorage.setItem(USERS_KEY, JSON.stringify(users));
       setCurrentUser(updatedUser);
-      showToast("প্রোফাইল আপডেট হয়েছে!");
+      showToast(t.profileUpdated);
     }
   };
 
@@ -552,7 +552,7 @@ const App: React.FC = () => {
         setImageToCrop(null);
       } catch (e) {
         console.error(e);
-        showToast("ছবি ক্রপ করতে সমস্যা হয়েছে", "error");
+        showToast(t.cropError, "error");
       }
     }
   };
@@ -577,7 +577,7 @@ const App: React.FC = () => {
         setMemberImageToCrop(null);
       } catch (e) {
         console.error(e);
-        showToast("ছবি ক্রপ করতে সমস্যা হয়েছে", "error");
+        showToast(t.cropError, "error");
       }
     }
   };
@@ -590,7 +590,7 @@ const App: React.FC = () => {
 
   const updateMemberProfile = () => {
     if (!editingMemberId || !editMemberName.trim()) {
-      showToast("সঠিক তথ্য দিন", "error");
+      showToast(t.errorInput, "error");
       return;
     }
 
@@ -608,7 +608,7 @@ const App: React.FC = () => {
     setMembers(updated);
     saveToDisk(updated, expenses);
     setEditingMemberId(null);
-    showToast("মেম্বার প্রোফাইল আপডেট হয়েছে!");
+    showToast(t.memberUpdated);
   };
 
   const renderMemberEdit = () => {
@@ -697,7 +697,7 @@ const App: React.FC = () => {
         <div className="fixed inset-0 z-[100] bg-black flex flex-col">
           <div className="flex justify-between items-center p-4 text-white">
             <button onClick={() => setIsCropping(false)} className="p-2"><X /></button>
-            <h3 className="font-bold">ছবি ক্রপ করুন</h3>
+            <h3 className="font-bold">{t.cropTitle}</h3>
             <button onClick={handleCropSave} className="p-2 text-emerald-400"><Check /></button>
           </div>
           <div className="relative flex-1 bg-slate-900">
@@ -739,25 +739,25 @@ const App: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-4">
-        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">প্রোফাইল এডিট করুন</h3>
+        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{t.editProfile}</h3>
         
         <div className="space-y-1">
-          <label className="text-[10px] font-black text-slate-500 uppercase ml-1">আপনার নাম</label>
+          <label className="text-[10px] font-black text-slate-500 uppercase ml-1">{t.yourName}</label>
           <input type="text" className="w-full bg-slate-50 border rounded-xl px-4 py-3 font-bold outline-none focus:border-indigo-500" value={editName} onChange={e => setEditName(e.target.value)} />
         </div>
 
         <div className="space-y-1">
-          <label className="text-[10px] font-black text-slate-500 uppercase ml-1">মোবাইল নাম্বার</label>
+          <label className="text-[10px] font-black text-slate-500 uppercase ml-1">{t.phone}</label>
           <input type="tel" className="w-full bg-slate-50 border rounded-xl px-4 py-3 font-bold outline-none focus:border-indigo-500" value={editPhone} onChange={e => setEditPhone(e.target.value)} />
         </div>
 
         <div className="space-y-1">
-          <label className="text-[10px] font-black text-slate-500 uppercase ml-1">পাসওয়ার্ড</label>
+          <label className="text-[10px] font-black text-slate-500 uppercase ml-1">{t.password}</label>
           <input type="text" className="w-full bg-slate-50 border rounded-xl px-4 py-3 font-bold outline-none focus:border-indigo-500" value={editPassword} onChange={e => setEditPassword(e.target.value)} />
         </div>
 
         <div className="space-y-1">
-          <label className="text-[10px] font-black text-slate-500 uppercase ml-1">প্রোফাইল ফটো (URL বা আপলোড)</label>
+          <label className="text-[10px] font-black text-slate-500 uppercase ml-1">{t.profilePhoto}</label>
           <div className="flex gap-2">
             <input type="text" placeholder="https://..." className="flex-1 bg-slate-50 border rounded-xl px-4 py-3 font-bold outline-none focus:border-indigo-500" value={editAvatar} onChange={e => setEditAvatar(e.target.value)} />
             <label className="bg-slate-100 p-3 rounded-xl cursor-pointer hover:bg-slate-200 transition-colors flex items-center justify-center">
@@ -765,13 +765,35 @@ const App: React.FC = () => {
               <input type="file" className="hidden" accept="image/*" onChange={handleImageSelect} />
             </label>
           </div>
-          <p className="text-[8px] text-slate-400 mt-1 italic">* আপনি চাইলে ছবির লিঙ্ক দিতে পারেন অথবা সরাসরি মোবাইল থেকে আপলোড করতে পারেন।</p>
+          <p className="text-[8px] text-slate-400 mt-1 italic">{t.photoNote}</p>
         </div>
 
-        <button onClick={handleUpdateProfile} className="w-full py-4 rounded-xl font-black shadow-lg bg-indigo-700 text-white active:scale-95 transition-all mt-4">আপডেট করুন</button>
+        <button onClick={handleUpdateProfile} className="w-full py-4 rounded-xl font-black shadow-lg bg-indigo-700 text-white active:scale-95 transition-all mt-4">{t.update}</button>
       </div>
 
-      <button onClick={handleLogout} className="w-full py-4 rounded-xl bg-rose-50 text-rose-600 font-black text-[11px] uppercase border border-rose-100 shadow-sm">লগআউট</button>
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-4">
+        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{t.langSelect}</h3>
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { id: 'bn', label: 'বাংলা' },
+            { id: 'en', label: 'English' },
+            { id: 'hi', label: 'हिन्दी' }
+          ].map((l) => (
+            <button
+              key={l.id}
+              onClick={() => {
+                setLang(l.id as Language);
+                localStorage.setItem(`${APP_PREFIX}lang`, l.id);
+              }}
+              className={`py-3 rounded-xl font-bold text-xs transition-all border ${lang === l.id ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 text-slate-600 border-slate-100'}`}
+            >
+              {l.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <button onClick={handleLogout} className="w-full py-4 rounded-xl font-black border-2 border-rose-100 text-rose-600 active:scale-95 transition-all">{t.logout}</button>
     </div>
   );
 
@@ -850,11 +872,11 @@ const App: React.FC = () => {
   };
 
   const clearAllBreakfast = () => {
-    if (window.confirm("আপনি কি নিশ্চিতভাবে সকল নাস্তার হিসাব মুছে ফেলতে চান?")) {
+    if (window.confirm(t.confirmClearBreakfast)) {
       const updated = expenses.filter(e => e.description !== BREAKFAST_DESC);
       setExpenses(updated);
       saveToDisk(members, updated);
-      showToast("সকল নাস্তার হিসাব মুছে ফেলা হয়েছে", "warning");
+      showToast(t.clearAll, "warning");
     }
   };
 
@@ -879,7 +901,7 @@ const App: React.FC = () => {
     <div className="space-y-4 animate-in fade-in duration-500 text-[12px]">
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
         <h2 className="text-lg font-black text-slate-900 mb-3 flex items-center gap-2">
-          <span className="text-xl">🛠️</span> এডমিন কন্ট্রোল প্যানেল
+          <span className="text-xl">🛠️</span> {t.adminPanel}
         </h2>
         <div className="space-y-2">
           {getAllUsersData().map(user => (
@@ -896,7 +918,7 @@ const App: React.FC = () => {
         </div>
       </div>
       {!userPhone && (
-        <button onClick={handleLogout} className="w-full py-4 rounded-xl bg-rose-600 text-white font-black text-[11px] uppercase shadow-lg">এডমিন লগআউট</button>
+        <button onClick={handleLogout} className="w-full py-4 rounded-xl bg-rose-600 text-white font-black text-[11px] uppercase shadow-lg">{t.logout}</button>
       )}
     </div>
   );
@@ -1026,7 +1048,7 @@ const App: React.FC = () => {
               { icon: '📊', title: t.home, desc: t.appDesc },
               { icon: '👥', title: t.members, desc: t.memberManagement },
               { icon: '📄', title: t.report, desc: t.fullReport },
-              { icon: '📶', title: 'Offline', desc: t.offlineNote },
+              { icon: '📶', title: t.offline, desc: t.offlineNote },
               { icon: '🔒', title: t.recoverPass, desc: t.password }
             ].map((f, i) => (
               <div key={i} className="bg-white/5 p-4 rounded-xl border border-white/5 flex gap-4 items-start">
@@ -1064,7 +1086,28 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-indigo-900 flex flex-col justify-center p-6 text-white text-center relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -translate-y-40 translate-x-40 blur-3xl"></div>
+        
         <div className="relative z-10 space-y-5 max-w-sm mx-auto w-full py-8">
+          {/* Language Selector */}
+          <div className="flex justify-center gap-2 mb-2">
+            {[
+              { id: 'bn', label: 'বাংলা' },
+              { id: 'en', label: 'English' },
+              { id: 'hi', label: 'हिन्दी' }
+            ].map((l) => (
+              <button
+                key={l.id}
+                onClick={() => {
+                  setLang(l.id as Language);
+                  localStorage.setItem(`${APP_PREFIX}lang`, l.id);
+                }}
+                className={`px-3 py-1.5 rounded-xl font-bold text-[10px] transition-all border ${lang === l.id ? 'bg-white text-indigo-900 border-white shadow-lg' : 'bg-white/10 text-white/60 border-white/10'}`}
+              >
+                {l.label}
+              </button>
+            ))}
+          </div>
+
           {showAbout && renderAbout()}
           <h2 className="text-xl font-black tracking-tight mb-2">{t.appName}</h2>
           <div className="w-16 h-16 bg-white rounded-2xl mx-auto flex items-center justify-center text-3xl shadow-2xl mb-2">🏪</div>
@@ -1105,7 +1148,7 @@ const App: React.FC = () => {
           </div>
           <div className="mt-auto pt-12 flex flex-col items-center gap-3">
             <div className="flex items-center gap-3 mb-2">
-              <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">ডেবলপার</span>
+              <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">{t.developer}</span>
               <div className="flex items-center gap-4">
                 <a href="https://fb.com/billal8795" target="_blank" rel="noopener noreferrer" className="text-white/60 hover:text-white transition-colors">
                   <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z"/></svg>
@@ -1115,24 +1158,24 @@ const App: React.FC = () => {
                 </a>
               </div>
             </div>
-            <button onClick={() => setShowAbout(true)} className="text-white/40 font-black text-[10px] uppercase tracking-widest bg-white/5 px-4 py-2 rounded-full mb-4">এপ সম্পর্কে জানুন</button>
+            <button onClick={() => setShowAbout(true)} className="text-white/40 font-black text-[10px] uppercase tracking-widest bg-white/5 px-4 py-2 rounded-full mb-4">{t.aboutApp}</button>
             <div className="flex flex-wrap justify-center gap-3 w-full px-2">
               <button onClick={handleInstallApp} className="flex-1 min-w-[140px] flex items-center gap-3 bg-indigo-600 border border-white/20 hover:bg-indigo-500 transition-all p-3 rounded-2xl shadow-xl active:scale-95">
                 <div className="bg-white/10 p-2 rounded-xl"><svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M17.523 15.3414L19.5441 18.8142C19.7431 19.1561 19.626 19.5932 19.2825 19.7922C18.939 19.9912 18.502 19.8741 18.303 19.5306L16.2415 15.9922C15.0001 16.634 13.5653 17 12 17C10.4347 17 9 16.634 7.7585 15.9922L5.69697 19.5306C5.498 19.8741 5.06094 19.9912 4.71746 19.7922C4.37397 19.5932 4.25688 19.1561 4.45591 18.8142L6.47697 15.3414C4.10319 13.8863 2.5 11.3323 2.5 8.39999C2.5 8.08244 2.51863 7.76922 2.55469 7.46143H21.4453C21.4814 7.76922 21.5 8.08244 21.5 8.39999C21.5 11.3323 19.8968 13.8863 17.523 15.3414ZM7 11.5C7.55228 11.5 8 11.0523 8 10.5C8 9.94772 7.55228 9.5 7 9.5C6.44772 9.5 6 9.94772 6 10.5C6 11.0523 6.44772 11.5 7 11.5ZM17 11.5C17.5523 11.5 18 11.0523 18 10.5C18 9.94772 17.5523 9.5 17 9.5C16.4477 9.5 16 9.94772 16 10.5C16 11.0523 16.4477 11.5 17 11.5ZM15.5 3.5C15.5 3.5 15.5 3.5 15.5 3.5C15.5 3.5 15.5 3.5 15.5 3.5ZM15.8285 2.17157L17.2427 0.757359C17.5356 0.464466 18.0104 0.464466 18.3033 0.757359C18.5962 1.05025 18.5962 1.52513 18.3033 1.81802L17.1517 2.9696C18.3562 3.90595 19.3412 5.09337 20.0381 6.46143H3.96191C4.65882 5.09337 5.64379 3.90595 6.84831 2.9696L5.6967 1.81802C5.40381 1.52513 5.40381 1.05025 5.6967 0.757359C5.98959 0.464466 6.46447 0.464466 6.75736 0.757359L8.17157 2.17157C9.3375 1.41113 10.6385 1 12 1C13.3615 1 14.6625 1.41113 15.8285 2.17157Z"/></svg></div>
                 <div className="text-left border-l border-white/20 pl-3">
-                  <p className="text-[8px] font-black uppercase text-indigo-200 mb-0.5">এন্ড্রয়েড অ্যাপ</p>
-                  <p className="text-[12px] font-black text-white">ইনস্টল</p>
+                  <p className="text-[8px] font-black uppercase text-indigo-200 mb-0.5">{t.androidApp}</p>
+                  <p className="text-[12px] font-black text-white">{t.install}</p>
                 </div>
               </button>
               <button onClick={handleInstallIPhone} className="flex-1 min-w-[140px] flex items-center gap-3 bg-white/10 border border-white/20 hover:bg-white/20 transition-all p-3 rounded-2xl shadow-xl active:scale-95">
                 <div className="bg-white/10 p-2 rounded-xl"><svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 384 512"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg></div>
                 <div className="text-left border-l border-white/20 pl-3">
-                  <p className="text-[8px] font-black uppercase text-indigo-200 mb-0.5">আইফোন অ্যাপ</p>
-                  <p className="text-[12px] font-black text-white">ইনস্টল</p>
+                  <p className="text-[8px] font-black uppercase text-indigo-200 mb-0.5">{t.iphoneApp}</p>
+                  <p className="text-[12px] font-black text-white">{t.install}</p>
                 </div>
               </button>
             </div>
-            <p className="text-[10px] text-indigo-300/60 font-medium max-w-[200px] leading-tight mt-1">এই অ্যাপটি একবার ইনস্টল করলে আপনি অফলাইনেও ব্যবহার করতে পারবেন।</p>
+            <p className="text-[10px] text-indigo-300/60 font-medium max-w-[200px] leading-tight mt-1">{t.offlineNote}</p>
           </div>
         </div>
         {toast && (
@@ -1229,7 +1272,7 @@ const App: React.FC = () => {
                     {expenses.filter(e => e.description === BREAKFAST_DESC).map(exp => (
                       <div key={exp.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
                         <div className="min-w-0">
-                          <p className="font-black text-slate-700 text-[11px] truncate">{members.find(m => m.id === exp.targetMemberId)?.name || 'Unknown'}</p>
+                          <p className="font-black text-slate-700 text-[11px] truncate">{members.find(m => m.id === exp.targetMemberId)?.name || t.unknown}</p>
                           <p className="text-[7px] text-slate-400 font-bold">{new Date(exp.date).toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US')} • {new Date(exp.date).toLocaleTimeString(lang === 'bn' ? 'bn-BD' : 'en-US', { hour: '2-digit', minute: '2-digit' })}</p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -1249,7 +1292,7 @@ const App: React.FC = () => {
                 <div className="flex justify-between items-center px-1"><h2 className="text-lg font-black text-slate-900">{t.transactionBook}</h2><button onClick={clearAllExpenses} className="text-[10px] font-black uppercase text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100">{t.clearAll}</button></div>
                 {expenses.map(exp => {
                   const targetMember = members.find(m => m.id === exp.targetMemberId);
-                  const memberName = exp.type === ExpenseType.SHARED ? "সবার বাজার" : (targetMember?.name || "অজানা");
+                  const memberName = exp.type === ExpenseType.SHARED ? t.shared : (targetMember?.name || t.unknown);
                   
                   return (
                     <div key={exp.id} className="bg-white p-3 rounded-xl border flex justify-between items-center shadow-sm">

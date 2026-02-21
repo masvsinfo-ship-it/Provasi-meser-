@@ -44,6 +44,7 @@ export const translations = {
     installIPhone: "আইফোন অ্যাপ",
     install: "ইনস্টল",
     offlineNote: "এই অ্যাপটি একবার ইনস্টল করলে আপনি অফলাইনেও ব্যবহার করতে পারবেন।",
+    offline: "অফলাইন",
     aboutApp: "এপ সম্পর্কে জানুন",
     aboutTitle: "এপ সম্পর্কে বিস্তারিত",
     aboutIntroTitle: "প্রবাসীদের জন্য বিশেষ উদ্যোগ",
@@ -96,7 +97,18 @@ export const translations = {
     shareSuccess: "শেয়ার করা হয়েছে",
     updateSuccess: "প্রোফাইল আপডেট হয়েছে!",
     updatePhoneSuccess: "প্রোফাইল ও নাম্বার আপডেট হয়েছে!",
-    langSelect: "ভাষা পরিবর্তন করুন"
+    langSelect: "ভাষা পরিবর্তন করুন",
+    contactDev: "ডেবলপারের সাথে যোগাযোগ",
+    thanks: "ধন্যবাদ • মেছ ম্যানেজমেন্ট",
+    totalPayment: "মোট জমা",
+    totalBreakfast: "মোট নাস্তা",
+    averagePerPerson: "জনপ্রতি গড় খরচ",
+    monthlySummary: "মাসিক সারসংক্ষেপ",
+    joinDate: "যোগদানের তারিখ",
+    messWillGet: "মেছ পাবে",
+    youWillGet: "আপনি পাবেন",
+    date: "তারিখ",
+    downloadReport: "রিপোর্ট ডাউনলোড করুন"
   },
   en: {
     appName: "Bachelor Mess Tracker",
@@ -140,6 +152,7 @@ export const translations = {
     installIPhone: "iPhone App",
     install: "Install",
     offlineNote: "Once installed, you can use this app offline.",
+    offline: "Offline",
     aboutApp: "About App",
     aboutTitle: "App Details",
     aboutIntroTitle: "Special Initiative for Expats",
@@ -192,7 +205,18 @@ export const translations = {
     shareSuccess: "Shared successfully",
     updateSuccess: "Profile updated!",
     updatePhoneSuccess: "Profile and number updated!",
-    langSelect: "Change Language"
+    langSelect: "Change Language",
+    contactDev: "Contact Developer",
+    thanks: "Thanks • Mess Management",
+    totalPayment: "Total Payment",
+    totalBreakfast: "Total Breakfast",
+    averagePerPerson: "Average Per Person",
+    monthlySummary: "Monthly Summary",
+    joinDate: "Join Date",
+    messWillGet: "Mess will get",
+    youWillGet: "You will get",
+    date: "Date",
+    downloadReport: "Download Report"
   },
   hi: {
     appName: "बैचलर मेस ट्रैकर",
@@ -236,6 +260,7 @@ export const translations = {
     installIPhone: "आईफोन ऐप",
     install: "इंस्टॉल",
     offlineNote: "एक बार इंस्टॉल होने के बाद, आप इस ऐप का ऑफ़लाइन उपयोग कर सकते हैं।",
+    offline: "ऑफ़लाइन",
     aboutApp: "ऐप के बारे में",
     aboutTitle: "ऐप विवरण",
     aboutIntroTitle: "प्रवासियों के लिए विशेष पहल",
@@ -288,6 +313,17 @@ export const translations = {
     shareSuccess: "सफलतापूर्वक साझा किया गया",
     updateSuccess: "प्रोफ़ाइल अपडेट हो गई!",
     updatePhoneSuccess: "प्रोफ़ाइल और नंबर अपडेट हो गए!",
-    langSelect: "भाषा बदलें"
+    langSelect: "भाषा बदलें",
+    contactDev: "डेवलपर से संपर्क करें",
+    thanks: "धन्यवाद • मेस प्रबंधन",
+    totalPayment: "कुल भुगतान",
+    totalBreakfast: "कुल नाश्ता",
+    averagePerPerson: "प्रति व्यक्ति औसत",
+    monthlySummary: "मासिक सारांश",
+    joinDate: "शामिल होने की तिथि",
+    messWillGet: "मेस को मिलेगा",
+    youWillGet: "आपको मिलेगा",
+    date: "तारीख",
+    downloadReport: "रिपोर्ट डाउनलोड करें"
   }
 };
