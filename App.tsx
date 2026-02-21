@@ -7,6 +7,9 @@ import MemberReport from './components/MemberReport.tsx';
 import FullMessReport from './components/FullMessReport.tsx';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
+import Cropper from 'react-easy-crop';
+import { Camera, Upload, X, Check } from 'lucide-react';
+import { getCroppedImg } from './utils/image.ts';
 
 const APP_PREFIX = 'mess_tracker_v3_';
 const USERS_KEY = 'mess_tracker_auth_users';
@@ -44,6 +47,12 @@ const App: React.FC = () => {
   const [editPassword, setEditPassword] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
+
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const [isCropping, setIsCropping] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
@@ -506,14 +515,77 @@ const App: React.FC = () => {
     }
   };
 
+  const onCropComplete = (_croppedArea: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const reader = new FileReader();
+      reader.addEventListener('load', () => {
+        setImageToCrop(reader.result as string);
+        setIsCropping(true);
+      });
+      reader.readAsDataURL(e.target.files[0]);
+    }
+  };
+
+  const handleCropSave = async () => {
+    if (imageToCrop && croppedAreaPixels) {
+      try {
+        const croppedImage = await getCroppedImg(imageToCrop, croppedAreaPixels);
+        setEditAvatar(croppedImage);
+        setIsCropping(false);
+        setImageToCrop(null);
+      } catch (e) {
+        console.error(e);
+        showToast("ছবি ক্রপ করতে সমস্যা হয়েছে", "error");
+      }
+    }
+  };
+
   const renderProfile = () => (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {isCropping && imageToCrop && (
+        <div className="fixed inset-0 z-[100] bg-black flex flex-col">
+          <div className="flex justify-between items-center p-4 text-white">
+            <button onClick={() => setIsCropping(false)} className="p-2"><X /></button>
+            <h3 className="font-bold">ছবি ক্রপ করুন</h3>
+            <button onClick={handleCropSave} className="p-2 text-emerald-400"><Check /></button>
+          </div>
+          <div className="relative flex-1 bg-slate-900">
+            <Cropper
+              image={imageToCrop}
+              crop={crop}
+              zoom={zoom}
+              aspect={1}
+              onCropChange={setCrop}
+              onCropComplete={onCropComplete}
+              onZoomChange={setZoom}
+            />
+          </div>
+          <div className="p-6 bg-black">
+            <input
+              type="range"
+              value={zoom}
+              min={1}
+              max={3}
+              step={0.1}
+              aria-labelledby="Zoom"
+              onChange={(e) => setZoom(Number(e.target.value))}
+              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+            />
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col items-center">
         <div className="relative group">
-          <img src={editAvatar || (currentUser?.avatar)} className="w-24 h-24 rounded-full border-4 border-indigo-50 shadow-md bg-slate-50" />
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-            <span className="text-white text-[10px] font-black uppercase">পরিবর্তন</span>
-          </div>
+          <img src={editAvatar || (currentUser?.avatar)} className="w-24 h-24 rounded-full border-4 border-indigo-50 shadow-md bg-slate-50 object-cover" />
+          <label className="absolute bottom-0 right-0 bg-indigo-600 p-2 rounded-full text-white shadow-lg cursor-pointer hover:bg-indigo-700 transition-colors">
+            <Camera className="w-4 h-4" />
+            <input type="file" className="hidden" accept="image/*" onChange={handleImageSelect} />
+          </label>
         </div>
         <h2 className="mt-4 text-xl font-black text-slate-900">{currentUser?.name}</h2>
         <p className="text-slate-400 font-bold text-xs">{currentUser?.phone}</p>
@@ -538,9 +610,15 @@ const App: React.FC = () => {
         </div>
 
         <div className="space-y-1">
-          <label className="text-[10px] font-black text-slate-500 uppercase ml-1">প্রোফাইল ফটো (URL)</label>
-          <input type="text" placeholder="https://..." className="w-full bg-slate-50 border rounded-xl px-4 py-3 font-bold outline-none focus:border-indigo-500" value={editAvatar} onChange={e => setEditAvatar(e.target.value)} />
-          <p className="text-[8px] text-slate-400 mt-1 italic">* আপনার ছবির একটি অনলাইন লিঙ্ক এখানে দিন।</p>
+          <label className="text-[10px] font-black text-slate-500 uppercase ml-1">প্রোফাইল ফটো (URL বা আপলোড)</label>
+          <div className="flex gap-2">
+            <input type="text" placeholder="https://..." className="flex-1 bg-slate-50 border rounded-xl px-4 py-3 font-bold outline-none focus:border-indigo-500" value={editAvatar} onChange={e => setEditAvatar(e.target.value)} />
+            <label className="bg-slate-100 p-3 rounded-xl cursor-pointer hover:bg-slate-200 transition-colors flex items-center justify-center">
+              <Upload className="w-5 h-5 text-slate-600" />
+              <input type="file" className="hidden" accept="image/*" onChange={handleImageSelect} />
+            </label>
+          </div>
+          <p className="text-[8px] text-slate-400 mt-1 italic">* আপনি চাইলে ছবির লিঙ্ক দিতে পারেন অথবা সরাসরি মোবাইল থেকে আপলোড করতে পারেন।</p>
         </div>
 
         <button onClick={handleUpdateProfile} className="w-full py-4 rounded-xl font-black shadow-lg bg-indigo-700 text-white active:scale-95 transition-all mt-4">আপডেট করুন</button>
