@@ -1084,8 +1084,9 @@ const App: React.FC = () => {
 
   if (!userPhone && !isAdmin) {
     return (
-      <div className="min-h-screen bg-indigo-900 flex flex-col justify-center p-6 text-white text-center relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -translate-y-40 translate-x-40 blur-3xl"></div>
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+        <div className="w-full max-w-md min-h-screen bg-indigo-900 flex flex-col justify-center p-6 text-white text-center relative overflow-hidden shadow-2xl">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -translate-y-40 translate-x-40 blur-3xl"></div>
         
         <div className="relative z-10 space-y-5 max-w-sm mx-auto w-full py-8">
           {/* Language Selector */}
@@ -1179,11 +1180,12 @@ const App: React.FC = () => {
           </div>
         </div>
         {toast && (
-          <div className="fixed bottom-10 left-6 right-6 z-50 p-4 rounded-xl text-center font-bold text-sm bg-rose-500 shadow-2xl animate-in slide-in-from-bottom-4">
+          <div className={`fixed bottom-10 left-6 right-6 z-50 p-4 rounded-xl text-center font-bold text-sm shadow-2xl animate-in slide-in-from-bottom-4 ${toast.type === 'error' ? 'bg-rose-500' : toast.type === 'warning' ? 'bg-amber-500' : 'bg-emerald-500'}`}>
             {toast.message}
           </div>
         )}
       </div>
+    </div>
     );
   }
 

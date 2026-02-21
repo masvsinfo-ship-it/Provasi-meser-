@@ -108,7 +108,13 @@ export const translations = {
     messWillGet: "মেছ পাবে",
     youWillGet: "আপনি পাবেন",
     date: "তারিখ",
-    downloadReport: "রিপোর্ট ডাউনলোড করুন"
+    downloadReport: "রিপোর্ট ডাউনলোড করুন",
+    wrongPhonePass: "নাম্বার বা পাসওয়ার্ড ভুল!",
+    wrongAdminPass: "এডমিন পাসওয়ার্ড ভুল!",
+    nameRequired: "নাম দিতে হবে!",
+    phoneExists: "এই নাম্বার আগে থেকেই আছে!",
+    adminLoginSuccess: "এডমিন লগইন সফল!",
+    loginSuccess: "লগইন সফল!"
   },
   en: {
     appName: "Bachelor Mess Tracker",
@@ -216,7 +222,13 @@ export const translations = {
     messWillGet: "Mess will get",
     youWillGet: "You will get",
     date: "Date",
-    downloadReport: "Download Report"
+    downloadReport: "Download Report",
+    wrongPhonePass: "Invalid phone or password!",
+    wrongAdminPass: "Invalid admin password!",
+    nameRequired: "Name is required!",
+    phoneExists: "This number already exists!",
+    adminLoginSuccess: "Admin login successful!",
+    loginSuccess: "Login successful!"
   },
   hi: {
     appName: "बैचलर मेस ट्रैकर",
@@ -324,6 +336,12 @@ export const translations = {
     messWillGet: "मेस को मिलेगा",
     youWillGet: "आपको मिलेगा",
     date: "तारीख",
-    downloadReport: "रिपोर्ट डाउनलोड करें"
+    downloadReport: "रिपोर्ट डाउनलोड करें",
+    wrongPhonePass: "अमान्य फ़ोन या पासवर्ड!",
+    wrongAdminPass: "अमान्य व्यवस्थापक पासवर्ड!",
+    nameRequired: "नाम आवश्यक है!",
+    phoneExists: "यह नंबर पहले से मौजूद है!",
+    adminLoginSuccess: "व्यवस्थापक लॉगिन सफल!",
+    loginSuccess: "लॉगिन सफल!"
   }
 };
