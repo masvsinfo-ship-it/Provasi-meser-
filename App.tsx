@@ -54,6 +54,12 @@ const App: React.FC = () => {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
   const [isCropping, setIsCropping] = useState(false);
 
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  const [editMemberName, setEditMemberName] = useState('');
+  const [editMemberAvatar, setEditMemberAvatar] = useState('');
+  const [isCroppingMember, setIsCroppingMember] = useState(false);
+  const [memberImageToCrop, setMemberImageToCrop] = useState<string | null>(null);
+
   useEffect(() => {
     if (currentUser) {
       setEditName(currentUser.name);
@@ -544,6 +550,140 @@ const App: React.FC = () => {
     }
   };
 
+  const handleMemberImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const reader = new FileReader();
+      reader.addEventListener('load', () => {
+        setMemberImageToCrop(reader.result as string);
+        setIsCroppingMember(true);
+      });
+      reader.readAsDataURL(e.target.files[0]);
+    }
+  };
+
+  const handleMemberCropSave = async () => {
+    if (memberImageToCrop && croppedAreaPixels) {
+      try {
+        const croppedImage = await getCroppedImg(memberImageToCrop, croppedAreaPixels);
+        setEditMemberAvatar(croppedImage);
+        setIsCroppingMember(false);
+        setMemberImageToCrop(null);
+      } catch (e) {
+        console.error(e);
+        showToast("ছবি ক্রপ করতে সমস্যা হয়েছে", "error");
+      }
+    }
+  };
+
+  const startEditingMember = (member: Member) => {
+    setEditingMemberId(member.id);
+    setEditMemberName(member.name);
+    setEditMemberAvatar(member.avatar || '');
+  };
+
+  const updateMemberProfile = () => {
+    if (!editingMemberId || !editMemberName.trim()) {
+      showToast("সঠিক তথ্য দিন", "error");
+      return;
+    }
+
+    const updated = members.map(m => {
+      if (m.id === editingMemberId) {
+        return {
+          ...m,
+          name: editMemberName.trim(),
+          avatar: editMemberAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(editMemberName)}`
+        };
+      }
+      return m;
+    });
+
+    setMembers(updated);
+    saveToDisk(updated, expenses);
+    setEditingMemberId(null);
+    showToast("মেম্বার প্রোফাইল আপডেট হয়েছে!");
+  };
+
+  const renderMemberEdit = () => {
+    const member = members.find(m => m.id === editingMemberId);
+    if (!member) return null;
+
+    return (
+      <div className="space-y-6 animate-in fade-in duration-500">
+        {isCroppingMember && memberImageToCrop && (
+          <div className="fixed inset-0 z-[100] bg-black flex flex-col">
+            <div className="flex justify-between items-center p-4 text-white">
+              <button onClick={() => setIsCroppingMember(false)} className="p-2"><X /></button>
+              <h3 className="font-bold">ছবি ক্রপ করুন</h3>
+              <button onClick={handleMemberCropSave} className="p-2 text-emerald-400"><Check /></button>
+            </div>
+            <div className="relative flex-1 bg-slate-900">
+              <Cropper
+                image={memberImageToCrop}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                onCropChange={setCrop}
+                onCropComplete={onCropComplete}
+                onZoomChange={setZoom}
+              />
+            </div>
+            <div className="p-6 bg-black">
+              <input
+                type="range"
+                value={zoom}
+                min={1}
+                max={3}
+                step={0.1}
+                aria-labelledby="Zoom"
+                onChange={(e) => setZoom(Number(e.target.value))}
+                className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 mb-4">
+          <button onClick={() => setEditingMemberId(null)} className="p-2 bg-white rounded-xl shadow-sm border border-slate-100 text-slate-600">
+            <X className="w-5 h-5" />
+          </button>
+          <h2 className="text-lg font-black text-slate-900">মেম্বার প্রোফাইল এডিট</h2>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col items-center">
+          <div className="relative group">
+            <img src={editMemberAvatar || member.avatar} className="w-24 h-24 rounded-full border-4 border-indigo-50 shadow-md bg-slate-50 object-cover" />
+            <label className="absolute bottom-0 right-0 bg-indigo-600 p-2 rounded-full text-white shadow-lg cursor-pointer hover:bg-indigo-700 transition-colors">
+              <Camera className="w-4 h-4" />
+              <input type="file" className="hidden" accept="image/*" onChange={handleMemberImageSelect} />
+            </label>
+          </div>
+          <h2 className="mt-4 text-xl font-black text-slate-900">{member.name}</h2>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-4">
+          <div className="space-y-1">
+            <label className="text-[10px] font-black text-slate-500 uppercase ml-1">মেম্বারের নাম</label>
+            <input type="text" className="w-full bg-slate-50 border rounded-xl px-4 py-3 font-bold outline-none focus:border-indigo-500" value={editMemberName} onChange={e => setEditMemberName(e.target.value)} />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-black text-slate-500 uppercase ml-1">প্রোফাইল ফটো (URL বা আপলোড)</label>
+            <div className="flex gap-2">
+              <input type="text" placeholder="https://..." className="flex-1 bg-slate-50 border rounded-xl px-4 py-3 font-bold outline-none focus:border-indigo-500" value={editMemberAvatar} onChange={e => setEditMemberAvatar(e.target.value)} />
+              <label className="bg-slate-100 p-3 rounded-xl cursor-pointer hover:bg-slate-200 transition-colors flex items-center justify-center">
+                <Upload className="w-5 h-5 text-slate-600" />
+                <input type="file" className="hidden" accept="image/*" onChange={handleMemberImageSelect} />
+              </label>
+            </div>
+          </div>
+
+          <button onClick={updateMemberProfile} className="w-full py-4 rounded-xl font-black shadow-lg bg-indigo-700 text-white active:scale-95 transition-all mt-4">আপডেট করুন</button>
+        </div>
+      </div>
+    );
+  };
+
   const renderProfile = () => (
     <div className="space-y-6 animate-in fade-in duration-500">
       {isCropping && imageToCrop && (
@@ -792,7 +932,11 @@ const App: React.FC = () => {
         
         <div className="grid grid-cols-1 gap-4">
           {summary.memberBalances.map((mb) => (
-            <div key={mb.member.id} className={`bg-white rounded-2xl p-4 shadow-sm border ${mb.member.leaveDate ? 'border-slate-200 opacity-60' : 'border-slate-100'} flex flex-col space-y-3 relative overflow-hidden transition-all active:scale-[0.98]`}>
+            <div 
+              key={mb.member.id} 
+              onClick={() => startEditingMember(mb.member)}
+              className={`bg-white rounded-2xl p-4 shadow-sm border cursor-pointer hover:border-indigo-300 ${mb.member.leaveDate ? 'border-slate-200 opacity-60' : 'border-slate-100'} flex flex-col space-y-3 relative overflow-hidden transition-all active:scale-[0.98]`}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="relative">
@@ -966,8 +1110,9 @@ const App: React.FC = () => {
         )}
         {userPhone && (
           <>
-            {activeTab === 'dashboard' && renderDashboard()}
-            {activeTab === 'expenses' && (
+            {editingMemberId && renderMemberEdit()}
+            {!editingMemberId && activeTab === 'dashboard' && renderDashboard()}
+            {!editingMemberId && activeTab === 'expenses' && (
               <div className="space-y-4">
                 <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
                   <h2 className="text-lg font-black text-center mb-5 text-slate-900">{isAdmin ? 'ইউজার ডাটা এন্ট্রি (Admin)' : 'নতুন এন্ট্রি যোগ করুন'}</h2>
@@ -1031,7 +1176,7 @@ const App: React.FC = () => {
                 </div>
               </div>
             )}
-            {activeTab === 'history' && (
+            {!editingMemberId && activeTab === 'history' && (
               <div className="space-y-3">
                 <div className="flex justify-between items-center px-1"><h2 className="text-lg font-black text-slate-900">লেনদেন খাতা</h2><button onClick={clearAllExpenses} className="text-[10px] font-black uppercase text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100">সব মুছুন</button></div>
                 {expenses.map(exp => {
@@ -1057,7 +1202,7 @@ const App: React.FC = () => {
                 })}
               </div>
             )}
-            {activeTab === 'summary' && (
+            {!editingMemberId && activeTab === 'summary' && (
               <div className="space-y-5">
                 <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
                   <h3 className="font-black text-[10px] uppercase tracking-wider text-slate-400 mb-3">মেম্বার ম্যানেজমেন্ট</h3>
@@ -1069,7 +1214,12 @@ const App: React.FC = () => {
                     <p className="text-[9px] font-black text-indigo-500 uppercase px-1">সক্রিয় মেম্বার</p>
                     {activeMembers.map(m => (
                       <div key={m.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <span className="font-black text-slate-800 text-[12px]">{m.name}</span>
+                        <span 
+                          onClick={() => startEditingMember(m)}
+                          className="font-black text-slate-800 text-[12px] cursor-pointer hover:text-indigo-600 underline decoration-indigo-200 underline-offset-4"
+                        >
+                          {m.name}
+                        </span>
                         <div className="flex gap-1.5">
                           <button onClick={() => leaveMember(m.id)} className="text-amber-600 bg-amber-50 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase">নিষ্ক্রিয়</button>
                           <button onClick={() => deleteMemberRecord(m.id)} className="text-rose-400 p-1.5"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
@@ -1095,7 +1245,7 @@ const App: React.FC = () => {
                 </div>
               </div>
             )}
-            {activeTab === 'profile' && renderProfile()}
+            {!editingMemberId && activeTab === 'profile' && renderProfile()}
           </>
         )}
       </div>
