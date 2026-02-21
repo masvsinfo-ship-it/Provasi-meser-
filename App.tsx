@@ -10,6 +10,7 @@ import html2canvas from 'html2canvas';
 import Cropper from 'react-easy-crop';
 import { Camera, Upload, X, Check } from 'lucide-react';
 import { getCroppedImg } from './utils/image.ts';
+import { translations, Language } from './src/translations.ts';
 
 const APP_PREFIX = 'mess_tracker_v3_';
 const USERS_KEY = 'mess_tracker_auth_users';
@@ -20,6 +21,7 @@ const App: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState<boolean>(() => localStorage.getItem('is_admin') === 'true');
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [isRecoverMode, setIsRecoverMode] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
   const [isAdminTab, setIsAdminTab] = useState(false);
   const [tempName, setTempName] = useState('');
   const [tempPhone, setTempPhone] = useState('');
@@ -36,6 +38,11 @@ const App: React.FC = () => {
   const [currencyCode, setCurrencyCode] = useState<string>(() => {
     return localStorage.getItem(`${APP_PREFIX}global_currency`) || getAutoDetectedCurrency();
   });
+  const [lang, setLang] = useState<Language>(() => {
+    return (localStorage.getItem(`${APP_PREFIX}lang`) as Language) || 'bn';
+  });
+
+  const t = translations[lang];
 
   const [breakfastInputs, setBreakfastInputs] = useState<Record<string, string>>({});
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -210,7 +217,7 @@ const App: React.FC = () => {
   const handleRecoverPassword = (e: React.FormEvent) => {
     e.preventDefault();
     if (tempPhone.length < 10 || !tempLastAmount) {
-      showToast("সব তথ্য দিন", "error");
+      showToast(t.errorInput, "error");
       return;
     }
     const storedUsersRaw = localStorage.getItem(USERS_KEY);
@@ -222,21 +229,21 @@ const App: React.FC = () => {
       const savedExpenses: Expense[] = savedExpensesRaw ? JSON.parse(savedExpensesRaw) : [];
       
       if (savedExpenses.length === 0) {
-        showToast("এই অ্যাকাউন্টে কোনো লেনদেন পাওয়া যায়নি। এডমিনের সাথে যোগাযোগ করুন।", "error");
+        showToast(t.aiNoData, "error");
         return;
       }
 
       const lastAmount = savedExpenses[0].amount;
       if (parseFloat(tempLastAmount) === lastAmount) {
         const password = typeof userData === 'string' ? userData : userData.password;
-        alert(`আপনার পাসওয়ার্ড হলো: ${password}`);
+        alert(`${t.password}: ${password}`);
         setIsRecoverMode(false);
         setTempLastAmount('');
       } else {
-        showToast("শেষ এন্ট্রি করা টাকার পরিমাণ ভুল!", "error");
+        showToast(t.lastAmount + " (Wrong)", "error");
       }
     } else {
-      showToast("এই নাম্বারে কোনো অ্যাকাউন্ট পাওয়া যায়নি!", "error");
+      showToast(t.errorLogin, "error");
     }
   };
 
@@ -614,7 +621,7 @@ const App: React.FC = () => {
           <div className="fixed inset-0 z-[100] bg-black flex flex-col">
             <div className="flex justify-between items-center p-4 text-white">
               <button onClick={() => setIsCroppingMember(false)} className="p-2"><X /></button>
-              <h3 className="font-bold">ছবি ক্রপ করুন</h3>
+              <h3 className="font-bold">{t.cropTitle}</h3>
               <button onClick={handleMemberCropSave} className="p-2 text-emerald-400"><Check /></button>
             </div>
             <div className="relative flex-1 bg-slate-900">
@@ -647,7 +654,7 @@ const App: React.FC = () => {
           <button onClick={() => setEditingMemberId(null)} className="p-2 bg-white rounded-xl shadow-sm border border-slate-100 text-slate-600">
             <X className="w-5 h-5" />
           </button>
-          <h2 className="text-lg font-black text-slate-900">মেম্বার প্রোফাইল এডিট</h2>
+          <h2 className="text-lg font-black text-slate-900">{t.memberProfileEdit}</h2>
         </div>
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col items-center">
@@ -663,12 +670,12 @@ const App: React.FC = () => {
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-4">
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-slate-500 uppercase ml-1">মেম্বারের নাম</label>
+            <label className="text-[10px] font-black text-slate-500 uppercase ml-1">{t.memberName}</label>
             <input type="text" className="w-full bg-slate-50 border rounded-xl px-4 py-3 font-bold outline-none focus:border-indigo-500" value={editMemberName} onChange={e => setEditMemberName(e.target.value)} />
           </div>
 
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-slate-500 uppercase ml-1">প্রোফাইল ফটো (URL বা আপলোড)</label>
+            <label className="text-[10px] font-black text-slate-500 uppercase ml-1">{t.profilePhoto}</label>
             <div className="flex gap-2">
               <input type="text" placeholder="https://..." className="flex-1 bg-slate-50 border rounded-xl px-4 py-3 font-bold outline-none focus:border-indigo-500" value={editMemberAvatar} onChange={e => setEditMemberAvatar(e.target.value)} />
               <label className="bg-slate-100 p-3 rounded-xl cursor-pointer hover:bg-slate-200 transition-colors flex items-center justify-center">
@@ -678,7 +685,7 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          <button onClick={updateMemberProfile} className="w-full py-4 rounded-xl font-black shadow-lg bg-indigo-700 text-white active:scale-95 transition-all mt-4">আপডেট করুন</button>
+          <button onClick={updateMemberProfile} className="w-full py-4 rounded-xl font-black shadow-lg bg-indigo-700 text-white active:scale-95 transition-all mt-4">{t.update}</button>
         </div>
       </div>
     );
@@ -776,11 +783,11 @@ const App: React.FC = () => {
   const addExpense = () => {
     const amount = parseFloat(expenseAmount);
     if (!expenseDesc || isNaN(amount)) {
-      showToast("সব তথ্য দিন", "error");
+      showToast(t.errorInput, "error");
       return;
     }
     if (expenseType !== ExpenseType.SHARED && !targetId) {
-      showToast("মেম্বার সিলেক্ট করুন", "error");
+      showToast(t.selectMember, "error");
       return;
     }
     const newExpense: Expense = {
@@ -796,7 +803,7 @@ const App: React.FC = () => {
     setExpenses(updated);
     setExpenseDesc('');
     setExpenseAmount('');
-    showToast("হিসাব সেভ হয়েছে!");
+    showToast(t.save);
     saveToDisk(members, updated);
     setActiveTab('dashboard');
   };
@@ -806,7 +813,7 @@ const App: React.FC = () => {
     const amount = parseFloat(amountRaw || '');
     const member = members.find(m => m.id === memberId);
     if (!member || isNaN(amount) || amount <= 0) {
-      showToast("সঠিক টাকার পরিমাণ দিন", "error");
+      showToast(t.errorInput, "error");
       return;
     }
     const newExpense: Expense = {
@@ -821,24 +828,24 @@ const App: React.FC = () => {
     const updated = [newExpense, ...expenses];
     setExpenses(updated);
     setBreakfastInputs(prev => ({ ...prev, [memberId]: '' }));
-    showToast(`${member.name} এর নাস্তার টাকা জমা হয়েছে`);
+    showToast(`${member.name} ${t.breakfastDeposit}`);
     saveToDisk(members, updated);
   };
 
   const deleteExpense = (id: string) => {
-    if (window.confirm("লেনদেনটি ডিলিট করতে চান?")) {
+    if (window.confirm(t.confirmClearExpenses)) {
       const updated = expenses.filter(e => e.id !== id);
       setExpenses(updated);
       saveToDisk(members, updated);
-      showToast("ডিলিট করা হয়েছে", "warning");
+      showToast(t.clearAll, "warning");
     }
   };
 
   const clearAllExpenses = () => {
-    if (window.confirm("আপনি কি নিশ্চিতভাবে সকল লেনদেন মুছে ফেলতে চান? এটি আর ফিরিয়ে আনা যাবে না।")) {
+    if (window.confirm(t.confirmClearExpenses)) {
       setExpenses([]);
       saveToDisk(members, []);
-      showToast("সকল লেনদেন মুছে ফেলা হয়েছে", "warning");
+      showToast(t.clearAll, "warning");
     }
   };
 
@@ -899,7 +906,7 @@ const App: React.FC = () => {
       <div className="bg-indigo-700 rounded-2xl p-5 text-white shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full translate-x-12 -translate-y-12 blur-2xl"></div>
         <div className="relative z-10">
-          <p className="text-indigo-200 text-[10px] font-black uppercase tracking-widest mb-1">মোট দোকান বাকি</p>
+          <p className="text-indigo-200 text-[10px] font-black uppercase tracking-widest mb-1">{t.totalDebt}</p>
           <div className="flex justify-between items-start">
             <h1 className="text-3xl font-black">{formatCurrency(summary.grandTotalDebt, currencyCode)}</h1>
             <button 
@@ -908,14 +915,14 @@ const App: React.FC = () => {
               className="bg-white/20 hover:bg-white/30 text-white p-2 rounded-xl border border-white/10 transition-all flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-              <span className="text-[9px] font-black uppercase tracking-wider">সম্পূর্ণ রিপোর্ট</span>
+              <span className="text-[9px] font-black uppercase tracking-wider">{t.fullReport}</span>
             </button>
           </div>
           <div className="mt-3 grid grid-cols-4 gap-1 text-center">
-            <div className="bg-white/10 p-1.5 rounded-lg"><p className="text-[6px] font-black opacity-60">শেয়ার</p><p className="text-[9px] font-black">{formatCurrency(summary.totalSharedExpense, currencyCode)}</p></div>
-            <div className="bg-white/10 p-1.5 rounded-lg"><p className="text-[6px] font-black opacity-60">ব্যক্তিগত</p><p className="text-[9px] font-black">{formatCurrency(summary.totalPersonalExpense, currencyCode)}</p></div>
-            <div className="bg-emerald-50/20 p-1.5 rounded-lg"><p className="text-[6px] font-black text-emerald-200">জমা</p><p className="text-[9px] font-black">{formatCurrency(summary.totalPayments, currencyCode)}</p></div>
-            <div className="bg-amber-500/20 p-1.5 rounded-lg"><p className="text-[6px] font-black text-amber-200">নাস্তা</p><p className="text-[9px] font-black">{formatCurrency(summary.totalBreakfastPayments, currencyCode)}</p></div>
+            <div className="bg-white/10 p-1.5 rounded-lg"><p className="text-[6px] font-black opacity-60">{t.shared}</p><p className="text-[9px] font-black">{formatCurrency(summary.totalSharedExpense, currencyCode)}</p></div>
+            <div className="bg-white/10 p-1.5 rounded-lg"><p className="text-[6px] font-black opacity-60">{t.personal}</p><p className="text-[9px] font-black">{formatCurrency(summary.totalPersonalExpense, currencyCode)}</p></div>
+            <div className="bg-emerald-50/20 p-1.5 rounded-lg"><p className="text-[6px] font-black text-emerald-200">{t.payment}</p><p className="text-[9px] font-black">{formatCurrency(summary.totalPayments, currencyCode)}</p></div>
+            <div className="bg-amber-500/20 p-1.5 rounded-lg"><p className="text-[6px] font-black text-amber-200">{t.breakfastPayment}</p><p className="text-[9px] font-black">{formatCurrency(summary.totalBreakfastPayments, currencyCode)}</p></div>
           </div>
         </div>
       </div>
@@ -927,7 +934,7 @@ const App: React.FC = () => {
 
       <div className="space-y-3">
         <h3 className="font-black text-slate-900 px-1 uppercase text-[9px] tracking-widest flex items-center gap-2">
-          <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span> মেম্বার ভিত্তিক হিসাব
+          <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span> {t.memberStats}
         </h3>
         
         <div className="grid grid-cols-1 gap-4">
@@ -940,13 +947,13 @@ const App: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="relative">
-                    <img src={mb.member.avatar} className="w-12 h-12 rounded-full border-2 border-indigo-50 bg-slate-50 shadow-sm" />
+                    <img src={mb.member.avatar} className="w-12 h-12 rounded-full border-2 border-indigo-50 bg-slate-50 shadow-sm object-cover" />
                     {!mb.member.leaveDate && <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></div>}
                   </div>
                   <div className="min-w-0">
                     <p className="font-black text-slate-800 text-[14px] truncate">{mb.member.name}</p>
                     <p className={`text-[7px] font-black uppercase tracking-wider ${mb.member.leaveDate ? 'text-slate-400' : 'text-indigo-500'}`}>
-                      {mb.member.leaveDate ? 'মেছ ছেড়েছেন' : 'বর্তমানে সক্রিয়'}
+                      {mb.member.leaveDate ? t.inactive : t.active}
                     </p>
                   </div>
                 </div>
@@ -954,7 +961,7 @@ const App: React.FC = () => {
                     <p className={`text-[18px] font-black leading-none ${mb.netBalance < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
                       {formatCurrency(mb.netBalance, currencyCode)}
                     </p>
-                    <p className="text-[8px] font-black uppercase text-slate-300 mt-1 tracking-widest">ব্যালেন্স</p>
+                    <p className="text-[8px] font-black uppercase text-slate-300 mt-1 tracking-widest">{t.balance}</p>
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
@@ -964,26 +971,26 @@ const App: React.FC = () => {
                       className="mt-2 p-1.5 bg-slate-50 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 rounded-lg border border-slate-100 transition-all flex items-center gap-1 group"
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                      <span className="text-[7px] font-black uppercase tracking-tighter hidden group-hover:inline">রিপোর্ট</span>
+                      <span className="text-[7px] font-black uppercase tracking-tighter hidden group-hover:inline">{t.report}</span>
                     </button>
                   </div>
               </div>
 
               <div className="grid grid-cols-4 gap-2 pt-3 border-t border-slate-50">
                 <div className="bg-indigo-50/40 p-1.5 rounded-xl text-center">
-                  <p className="text-[6px] font-black text-indigo-400 uppercase tracking-tighter">শেয়ার</p>
+                  <p className="text-[6px] font-black text-indigo-400 uppercase tracking-tighter">{t.shared}</p>
                   <p className="text-[10px] font-black text-indigo-700">{formatCurrency(mb.sharedShare, currencyCode)}</p>
                 </div>
                 <div className="bg-rose-50/40 p-1.5 rounded-xl text-center">
-                  <p className="text-[6px] font-black text-rose-400 uppercase tracking-tighter">ব্যক্তিগত</p>
+                  <p className="text-[6px] font-black text-rose-400 uppercase tracking-tighter">{t.personal}</p>
                   <p className="text-[10px] font-black text-rose-700">{formatCurrency(mb.personalTotal, currencyCode)}</p>
                 </div>
                 <div className="bg-emerald-50/40 p-1.5 rounded-xl text-center">
-                  <p className="text-[6px] font-black text-emerald-400 uppercase tracking-tighter">জমা</p>
+                  <p className="text-[6px] font-black text-emerald-400 uppercase tracking-tighter">{t.payment}</p>
                   <p className="text-[10px] font-black text-emerald-700">{formatCurrency(mb.paid, currencyCode)}</p>
                 </div>
                 <div className="bg-amber-50/40 p-1.5 rounded-xl text-center">
-                  <p className="text-[6px] font-black text-amber-500 uppercase tracking-tighter">নাস্তা</p>
+                  <p className="text-[6px] font-black text-amber-500 uppercase tracking-tighter">{t.breakfastPayment}</p>
                   <p className="text-[10px] font-black text-amber-700">{formatCurrency(mb.breakfastPaid, currencyCode)}</p>
                 </div>
               </div>
@@ -994,29 +1001,89 @@ const App: React.FC = () => {
     </div>
   );
 
+  const renderAbout = () => (
+    <div className="fixed inset-0 z-[100] bg-indigo-950 overflow-y-auto p-6 animate-in fade-in zoom-in duration-300">
+      <div className="max-w-sm mx-auto space-y-6 py-8">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-black text-white">{t.aboutTitle}</h2>
+          <button onClick={() => setShowAbout(false)} className="bg-white/10 p-2 rounded-xl text-white">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="bg-white/10 rounded-2xl p-6 border border-white/10 space-y-4">
+          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-3xl shadow-2xl mx-auto">🌍</div>
+          <h3 className="text-xl font-bold text-center text-indigo-200">{t.aboutIntroTitle}</h3>
+          <p className="text-indigo-100/80 text-sm leading-relaxed text-justify">
+            {t.aboutIntroDesc}
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          <h4 className="text-indigo-300 font-black uppercase text-[10px] tracking-widest px-1">{t.features}</h4>
+          <div className="grid grid-cols-1 gap-3">
+            {[
+              { icon: '📊', title: t.home, desc: t.appDesc },
+              { icon: '👥', title: t.members, desc: t.memberManagement },
+              { icon: '📄', title: t.report, desc: t.fullReport },
+              { icon: '📶', title: 'Offline', desc: t.offlineNote },
+              { icon: '🔒', title: t.recoverPass, desc: t.password }
+            ].map((f, i) => (
+              <div key={i} className="bg-white/5 p-4 rounded-xl border border-white/5 flex gap-4 items-start">
+                <span className="text-2xl">{f.icon}</span>
+                <div>
+                  <h5 className="font-bold text-white text-sm">{f.title}</h5>
+                  <p className="text-indigo-200/60 text-[11px]">{f.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h4 className="text-indigo-300 font-black uppercase text-[10px] tracking-widest px-1">{t.rules}</h4>
+          <ul className="space-y-3 text-indigo-100/80 text-sm list-disc pl-5">
+            <li>{t.errorInput}</li>
+            <li>{t.password}</li>
+            <li>{t.save}</li>
+            <li>{t.fullReport}</li>
+          </ul>
+        </div>
+
+        <button 
+          onClick={() => setShowAbout(false)} 
+          className="w-full bg-white text-indigo-950 font-black py-4 rounded-2xl shadow-xl active:scale-95 transition-all mt-6"
+        >
+          {t.understand}
+        </button>
+      </div>
+    </div>
+  );
+
   if (!userPhone && !isAdmin) {
     return (
       <div className="min-h-screen bg-indigo-900 flex flex-col justify-center p-6 text-white text-center relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -translate-y-40 translate-x-40 blur-3xl"></div>
         <div className="relative z-10 space-y-5 max-w-sm mx-auto w-full py-8">
-          <h2 className="text-xl font-black tracking-tight mb-2">ব্যাচেলর দের মেছের হিসাব</h2>
+          {showAbout && renderAbout()}
+          <h2 className="text-xl font-black tracking-tight mb-2">{t.appName}</h2>
           <div className="w-16 h-16 bg-white rounded-2xl mx-auto flex items-center justify-center text-3xl shadow-2xl mb-2">🏪</div>
-          <h1 className="text-lg font-bold tracking-tight opacity-90">{isAdminTab ? 'এডমিন লগিন' : (isRecoverMode ? 'পাসওয়ার্ড পুনরুদ্ধার' : (isLoginMode ? 'ইউজার লগইন' : 'নতুন অ্যাকাউন্ট'))}</h1>
+          <h1 className="text-lg font-bold tracking-tight opacity-90">{isAdminTab ? t.adminLogin : (isRecoverMode ? t.recoverPass : (isLoginMode ? t.login : t.register))}</h1>
           <form onSubmit={isRecoverMode ? handleRecoverPassword : handleAuth} className="space-y-3">
             {!isAdminTab && !isLoginMode && !isRecoverMode && (
               <input 
                 type="text" 
-                placeholder="আপনার নাম" 
+                placeholder={t.name} 
                 className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" 
                 value={tempName} 
                 onChange={e => setTempName(e.target.value)} 
               />
             )}
-            {!isAdminTab && <input type="tel" placeholder="মোবাইল নাম্বার" className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" value={tempPhone} onChange={e => setTempPhone(e.target.value)} />}
-            {isRecoverMode && <input type="number" placeholder="শেষ কত টাকা এন্ট্রি দিয়েছেন?" className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" value={tempLastAmount} onChange={e => setTempLastAmount(e.target.value)} />}
-            {!isRecoverMode && <input type="password" placeholder={isAdminTab ? "এডমিন পাসওয়ার্ড" : "পাসওয়ার্ড"} className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" value={tempPassword} onChange={e => setTempPassword(e.target.value)} />}
+            {!isAdminTab && <input type="tel" placeholder={t.phone} className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" value={tempPhone} onChange={e => setTempPhone(e.target.value)} />}
+            {isRecoverMode && <input type="number" placeholder={t.lastAmount} className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" value={tempLastAmount} onChange={e => setTempLastAmount(e.target.value)} />}
+            {!isRecoverMode && <input type="password" placeholder={isAdminTab ? t.adminLogin : t.password} className="w-full bg-white/10 border-2 border-white/20 rounded-xl px-5 py-3 text-md font-bold outline-none text-center focus:bg-white focus:text-indigo-900 transition-all" value={tempPassword} onChange={e => setTempPassword(e.target.value)} />}
             <button className="w-full bg-white text-indigo-900 font-black py-3.5 rounded-xl text-md shadow-xl active:scale-95 transition-all">
-              {isAdminTab ? 'প্রবেশ করুন' : (isRecoverMode ? 'পাসওয়ার্ড দেখুন' : (isLoginMode ? 'লগইন করুন' : 'অ্যাকাউন্ট খুলুন'))}
+              {isAdminTab ? t.enter : (isRecoverMode ? t.showPass : (isLoginMode ? t.login : t.createAccount))}
             </button>
           </form>
           <div className="flex flex-col gap-3 items-center">
@@ -1024,16 +1091,16 @@ const App: React.FC = () => {
               <>
                 {!isRecoverMode ? (
                   <>
-                    <button onClick={() => setIsLoginMode(!isLoginMode)} className="text-indigo-200 font-bold text-sm underline">{isLoginMode ? 'নতুন মেছ? অ্যাকাউন্ট খুলুন' : 'আগের মেছ? লগইন করুন'}</button>
-                    {isLoginMode && <button onClick={() => setIsRecoverMode(true)} className="text-white/60 font-bold text-xs underline">পাসওয়ার্ড ভুলে গেছেন?</button>}
-                    <button onClick={() => setIsAdminTab(true)} className="text-white/40 font-black text-[10px] uppercase tracking-widest bg-white/5 px-4 py-2 rounded-full mt-2">এডমিন লগিন</button>
+                    <button onClick={() => setIsLoginMode(!isLoginMode)} className="text-indigo-200 font-bold text-sm underline">{isLoginMode ? t.newMess : t.alreadyAccount}</button>
+                    {isLoginMode && <button onClick={() => setIsRecoverMode(true)} className="text-white/60 font-bold text-xs underline">{t.forgotPass}</button>}
+                    <button onClick={() => setIsAdminTab(true)} className="text-white/40 font-black text-[10px] uppercase tracking-widest bg-white/5 px-4 py-2 rounded-full mt-2">{t.adminLogin}</button>
                   </>
                 ) : (
-                  <button onClick={() => setIsRecoverMode(false)} className="text-indigo-200 font-bold text-sm underline">লগইনে ফিরে যান</button>
+                  <button onClick={() => setIsRecoverMode(false)} className="text-indigo-200 font-bold text-sm underline">{t.backToLogin}</button>
                 )}
               </>
             ) : (
-              <button onClick={() => setIsAdminTab(false)} className="text-indigo-200 font-bold text-sm underline">ইউজার লগইনে ফিরে যান</button>
+              <button onClick={() => setIsAdminTab(false)} className="text-indigo-200 font-bold text-sm underline">{t.backToLogin}</button>
             )}
           </div>
           <div className="mt-auto pt-12 flex flex-col items-center gap-3">
@@ -1048,6 +1115,7 @@ const App: React.FC = () => {
                 </a>
               </div>
             </div>
+            <button onClick={() => setShowAbout(true)} className="text-white/40 font-black text-[10px] uppercase tracking-widest bg-white/5 px-4 py-2 rounded-full mb-4">এপ সম্পর্কে জানুন</button>
             <div className="flex flex-wrap justify-center gap-3 w-full px-2">
               <button onClick={handleInstallApp} className="flex-1 min-w-[140px] flex items-center gap-3 bg-indigo-600 border border-white/20 hover:bg-indigo-500 transition-all p-3 rounded-2xl shadow-xl active:scale-95">
                 <div className="bg-white/10 p-2 rounded-xl"><svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M17.523 15.3414L19.5441 18.8142C19.7431 19.1561 19.626 19.5932 19.2825 19.7922C18.939 19.9912 18.502 19.8741 18.303 19.5306L16.2415 15.9922C15.0001 16.634 13.5653 17 12 17C10.4347 17 9 16.634 7.7585 15.9922L5.69697 19.5306C5.498 19.8741 5.06094 19.9912 4.71746 19.7922C4.37397 19.5932 4.25688 19.1561 4.45591 18.8142L6.47697 15.3414C4.10319 13.8863 2.5 11.3323 2.5 8.39999C2.5 8.08244 2.51863 7.76922 2.55469 7.46143H21.4453C21.4814 7.76922 21.5 8.08244 21.5 8.39999C21.5 11.3323 19.8968 13.8863 17.523 15.3414ZM7 11.5C7.55228 11.5 8 11.0523 8 10.5C8 9.94772 7.55228 9.5 7 9.5C6.44772 9.5 6 9.94772 6 10.5C6 11.0523 6.44772 11.5 7 11.5ZM17 11.5C17.5523 11.5 18 11.0523 18 10.5C18 9.94772 17.5523 9.5 17 9.5C16.4477 9.5 16 9.94772 16 10.5C16 11.0523 16.4477 11.5 17 11.5ZM15.5 3.5C15.5 3.5 15.5 3.5 15.5 3.5C15.5 3.5 15.5 3.5 15.5 3.5ZM15.8285 2.17157L17.2427 0.757359C17.5356 0.464466 18.0104 0.464466 18.3033 0.757359C18.5962 1.05025 18.5962 1.52513 18.3033 1.81802L17.1517 2.9696C18.3562 3.90595 19.3412 5.09337 20.0381 6.46143H3.96191C4.65882 5.09337 5.64379 3.90595 6.84831 2.9696L5.6967 1.81802C5.40381 1.52513 5.40381 1.05025 5.6967 0.757359C5.98959 0.464466 6.46447 0.464466 6.75736 0.757359L8.17157 2.17157C9.3375 1.41113 10.6385 1 12 1C13.3615 1 14.6625 1.41113 15.8285 2.17157Z"/></svg></div>
@@ -1104,7 +1172,7 @@ const App: React.FC = () => {
           <div className="mb-4 flex gap-2 animate-in slide-in-from-top-4">
             <button onClick={() => setUserPhone(null)} className="flex-1 bg-white text-indigo-700 border border-indigo-200 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-sm flex items-center justify-center gap-2">
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-              ইউজার লিস্টে ফিরে যান
+              {t.backToUserList}
             </button>
           </div>
         )}
@@ -1115,22 +1183,22 @@ const App: React.FC = () => {
             {!editingMemberId && activeTab === 'expenses' && (
               <div className="space-y-4">
                 <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-                  <h2 className="text-lg font-black text-center mb-5 text-slate-900">{isAdmin ? 'ইউজার ডাটা এন্ট্রি (Admin)' : 'নতুন এন্ট্রি যোগ করুন'}</h2>
+                  <h2 className="text-lg font-black text-center mb-5 text-slate-900">{isAdmin ? t.adminPanel : t.newEntry}</h2>
                   <div className="space-y-4">
-                    <input type="text" placeholder="খরচের বিবরণ" className="w-full bg-slate-50 border rounded-xl px-4 py-2.5 font-bold outline-none focus:border-indigo-500" value={expenseDesc} onChange={e => setExpenseDesc(e.target.value)} />
-                    <input type="number" placeholder="টাকার পরিমাণ" className="w-full bg-slate-50 border rounded-xl px-4 py-2.5 font-black text-lg outline-none focus:border-indigo-500" value={expenseAmount} onChange={e => setExpenseAmount(e.target.value)} />
+                    <input type="text" placeholder={t.description} className="w-full bg-slate-50 border rounded-xl px-4 py-2.5 font-bold outline-none focus:border-indigo-500" value={expenseDesc} onChange={e => setExpenseDesc(e.target.value)} />
+                    <input type="number" placeholder={t.amount} className="w-full bg-slate-50 border rounded-xl px-4 py-2.5 font-black text-lg outline-none focus:border-indigo-500" value={expenseAmount} onChange={e => setExpenseAmount(e.target.value)} />
                     <div className="grid grid-cols-3 gap-2">
-                      <button onClick={() => setExpenseType(ExpenseType.SHARED)} className={`py-2 rounded-lg border font-black text-[9px] uppercase ${expenseType === ExpenseType.SHARED ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white text-slate-400'}`}>সবার বাজার</button>
-                      <button onClick={() => setExpenseType(ExpenseType.PERSONAL)} className={`py-2 rounded-lg border font-black text-[9px] uppercase ${expenseType === ExpenseType.PERSONAL ? 'bg-rose-600 border-rose-600 text-white shadow-md' : 'bg-white text-slate-400'}`}>ব্যক্তিগত</button>
-                      <button onClick={() => setExpenseType(ExpenseType.PAYMENT)} className={`py-2 rounded-lg border font-black text-[9px] uppercase ${expenseType === ExpenseType.PAYMENT ? 'bg-emerald-600 border-emerald-600 text-white shadow-md' : 'bg-white text-slate-400'}`}>জমা/পেমেন্ট</button>
+                      <button onClick={() => setExpenseType(ExpenseType.SHARED)} className={`py-2 rounded-lg border font-black text-[9px] uppercase ${expenseType === ExpenseType.SHARED ? 'bg-indigo-600 border-indigo-600 text-white shadow-md' : 'bg-white text-slate-400'}`}>{t.shared}</button>
+                      <button onClick={() => setExpenseType(ExpenseType.PERSONAL)} className={`py-2 rounded-lg border font-black text-[9px] uppercase ${expenseType === ExpenseType.PERSONAL ? 'bg-rose-600 border-rose-600 text-white shadow-md' : 'bg-white text-slate-400'}`}>{t.personal}</button>
+                      <button onClick={() => setExpenseType(ExpenseType.PAYMENT)} className={`py-2 rounded-lg border font-black text-[9px] uppercase ${expenseType === ExpenseType.PAYMENT ? 'bg-emerald-600 border-emerald-600 text-white shadow-md' : 'bg-white text-slate-400'}`}>{t.payment}</button>
                     </div>
                     {expenseType !== ExpenseType.SHARED && (
                       <select className="w-full bg-slate-50 border rounded-xl px-4 py-2.5 font-bold outline-none" value={targetId} onChange={e => setTargetId(e.target.value)}>
-                        <option value="">মেম্বার সিলেক্ট করুন...</option>
+                        <option value="">{t.selectMember}</option>
                         {activeMembers.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                       </select>
                     )}
-                    <button onClick={addExpense} className="w-full py-3.5 rounded-xl font-black shadow-lg bg-indigo-700 text-white active:scale-95">সেভ করুন</button>
+                    <button onClick={addExpense} className="w-full py-3.5 rounded-xl font-black shadow-lg bg-indigo-700 text-white active:scale-95">{t.save}</button>
                   </div>
                 </div>
               </div>
@@ -1138,7 +1206,7 @@ const App: React.FC = () => {
             {activeTab === 'breakfast' && (
               <div className="space-y-4 animate-in fade-in duration-500">
                 <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-                  <h2 className="text-lg font-black text-slate-900 mb-2 flex items-center gap-2">☕ নাস্তার টাকা জমা</h2>
+                  <h2 className="text-lg font-black text-slate-900 mb-2 flex items-center gap-2">☕ {t.breakfastDeposit}</h2>
                   <div className="space-y-3">
                     {activeMembers.map(m => (
                       <div key={m.id} className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center justify-between gap-4">
@@ -1147,22 +1215,22 @@ const App: React.FC = () => {
                           <p className="font-black text-slate-800 text-[12px] truncate">{m.name}</p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <input type="number" placeholder="পরিমাণ" className="w-20 bg-white border rounded-xl px-3 py-2 text-xs font-black text-center" value={breakfastInputs[m.id] || ''} onChange={(e) => setBreakfastInputs(prev => ({ ...prev, [m.id]: e.target.value }))} />
-                          <button onClick={() => addBreakfastDeposit(m.id)} className="bg-indigo-600 text-white text-[9px] font-black uppercase px-3 py-2 rounded-xl shadow-md active:scale-90">জমা</button>
+                          <input type="number" placeholder={t.amount} className="w-20 bg-white border rounded-xl px-3 py-2 text-xs font-black text-center" value={breakfastInputs[m.id] || ''} onChange={(e) => setBreakfastInputs(prev => ({ ...prev, [m.id]: e.target.value }))} />
+                          <button onClick={() => addBreakfastDeposit(m.id)} className="bg-indigo-600 text-white text-[9px] font-black uppercase px-3 py-2 rounded-xl shadow-md active:scale-90">{t.payment}</button>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
                 <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-                  <div className="flex justify-between items-center mb-4"><h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">সাম্প্রতিক নাস্তা জমা</h3>
-                  {expenses.some(e => e.description === BREAKFAST_DESC) && <button onClick={clearAllBreakfast} className="text-[9px] font-black uppercase text-rose-500 bg-rose-50 px-2 py-1 rounded-lg border border-rose-100">সব মুছুন</button>}</div>
+                  <div className="flex justify-between items-center mb-4"><h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.breakfastPayment} {t.history}</h3>
+                  {expenses.some(e => e.description === BREAKFAST_DESC) && <button onClick={clearAllBreakfast} className="text-[9px] font-black uppercase text-rose-500 bg-rose-50 px-2 py-1 rounded-lg border border-rose-100">{t.clearAll}</button>}</div>
                   <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
                     {expenses.filter(e => e.description === BREAKFAST_DESC).map(exp => (
                       <div key={exp.id} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
                         <div className="min-w-0">
-                          <p className="font-black text-slate-700 text-[11px] truncate">{members.find(m => m.id === exp.targetMemberId)?.name || 'অজানা'}</p>
-                          <p className="text-[7px] text-slate-400 font-bold">{new Date(exp.date).toLocaleDateString('bn-BD')} • {new Date(exp.date).toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' })}</p>
+                          <p className="font-black text-slate-700 text-[11px] truncate">{members.find(m => m.id === exp.targetMemberId)?.name || 'Unknown'}</p>
+                          <p className="text-[7px] text-slate-400 font-bold">{new Date(exp.date).toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US')} • {new Date(exp.date).toLocaleTimeString(lang === 'bn' ? 'bn-BD' : 'en-US', { hour: '2-digit', minute: '2-digit' })}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="font-black text-emerald-600 text-[11px]">{formatCurrency(exp.amount, currencyCode)}</span>
@@ -1178,7 +1246,7 @@ const App: React.FC = () => {
             )}
             {!editingMemberId && activeTab === 'history' && (
               <div className="space-y-3">
-                <div className="flex justify-between items-center px-1"><h2 className="text-lg font-black text-slate-900">লেনদেন খাতা</h2><button onClick={clearAllExpenses} className="text-[10px] font-black uppercase text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100">সব মুছুন</button></div>
+                <div className="flex justify-between items-center px-1"><h2 className="text-lg font-black text-slate-900">{t.transactionBook}</h2><button onClick={clearAllExpenses} className="text-[10px] font-black uppercase text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100">{t.clearAll}</button></div>
                 {expenses.map(exp => {
                   const targetMember = members.find(m => m.id === exp.targetMemberId);
                   const memberName = exp.type === ExpenseType.SHARED ? "সবার বাজার" : (targetMember?.name || "অজানা");
@@ -1188,7 +1256,7 @@ const App: React.FC = () => {
                       <div className="min-w-0 flex-1 pr-4">
                         <p className="font-black text-slate-800 text-[13px] truncate">{exp.description}</p>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <p className="text-[8px] text-slate-400 font-bold uppercase">{new Date(exp.date).toLocaleDateString('bn-BD')}</p>
+                          <p className="text-[8px] text-slate-400 font-bold uppercase">{new Date(exp.date).toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US')}</p>
                           <span className="text-[8px] text-slate-300">•</span>
                           <p className="text-[8px] text-indigo-500 font-black uppercase tracking-wider">{memberName}</p>
                         </div>
@@ -1205,13 +1273,13 @@ const App: React.FC = () => {
             {!editingMemberId && activeTab === 'summary' && (
               <div className="space-y-5">
                 <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-                  <h3 className="font-black text-[10px] uppercase tracking-wider text-slate-400 mb-3">মেম্বার ম্যানেজমেন্ট</h3>
+                  <h3 className="font-black text-[10px] uppercase tracking-wider text-slate-400 mb-3">{t.memberManagement}</h3>
                   <div className="flex gap-2 mb-4">
-                    <input id="member-name-input" type="text" placeholder="মেম্বারের নাম" className="flex-1 bg-slate-50 border rounded-xl px-4 py-2 font-bold outline-none" />
-                    <button onClick={addMember} className="px-5 py-2 rounded-xl font-black shadow-md text-[10px] bg-indigo-600 text-white active:scale-95">যোগ</button>
+                    <input id="member-name-input" type="text" placeholder={t.memberName} className="flex-1 bg-slate-50 border rounded-xl px-4 py-2 font-bold outline-none" />
+                    <button onClick={addMember} className="px-5 py-2 rounded-xl font-black shadow-md text-[10px] bg-indigo-600 text-white active:scale-95">{t.add}</button>
                   </div>
                   <div className="space-y-3">
-                    <p className="text-[9px] font-black text-indigo-500 uppercase px-1">সক্রিয় মেম্বার</p>
+                    <p className="text-[9px] font-black text-indigo-500 uppercase px-1">{t.activeMembers}</p>
                     {activeMembers.map(m => (
                       <div key={m.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
                         <span 
@@ -1221,7 +1289,7 @@ const App: React.FC = () => {
                           {m.name}
                         </span>
                         <div className="flex gap-1.5">
-                          <button onClick={() => leaveMember(m.id)} className="text-amber-600 bg-amber-50 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase">নিষ্ক্রিয়</button>
+                          <button onClick={() => leaveMember(m.id)} className="text-amber-600 bg-amber-50 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase">{t.inactive}</button>
                           <button onClick={() => deleteMemberRecord(m.id)} className="text-rose-400 p-1.5"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                         </div>
                       </div>
@@ -1229,12 +1297,12 @@ const App: React.FC = () => {
 
                     {inactiveMembers.length > 0 && (
                       <div className="space-y-2 pt-4 border-t border-slate-100 mt-4">
-                        <p className="text-[9px] font-black text-rose-500 uppercase px-1">নিষ্ক্রিয় মেম্বার</p>
+                        <p className="text-[9px] font-black text-rose-500 uppercase px-1">{t.inactiveMembers}</p>
                         {inactiveMembers.map(m => (
                           <div key={m.id} className="flex items-center justify-between p-3 bg-slate-100 rounded-xl border border-slate-200 opacity-70">
                             <span className="font-black text-slate-500 text-[12px] line-through">{m.name}</span>
                             <div className="flex gap-1.5">
-                              <button onClick={() => reactivateMember(m.id)} className="text-indigo-600 bg-indigo-50 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase">সক্রিয় করুন</button>
+                              <button onClick={() => reactivateMember(m.id)} className="text-indigo-600 bg-indigo-50 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase">{t.active}</button>
                               <button onClick={() => deleteMemberRecord(m.id)} className="text-rose-400 p-1.5 hover:bg-rose-50 rounded-lg"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                             </div>
                           </div>
