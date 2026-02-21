@@ -1188,7 +1188,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
+    <Layout activeTab={activeTab} setActiveTab={setActiveTab} lang={lang}>
       {/* Hidden container for PDF generation */}
       <div className="fixed -left-[2000px] top-0 pointer-events-none overflow-hidden">
         {isGeneratingPdf && pdfMemberId && (
